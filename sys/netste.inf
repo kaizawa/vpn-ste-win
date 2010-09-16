@@ -1,0 +1,203 @@
+;;Copyright (C) 2004-2010 Kazuyoshi Aizawa. All rights reserved.
+;;
+;;Redistribution and use in source and binary forms, with or without
+;;modification, are permitted provided that the following conditions
+;;are met:
+;;
+;;1. Redistributions of source code must retain the above copyright
+;;  notice, this list of conditions and the following disclaimer.
+;;2. Redistributions in binary form must reproduce the above copyright
+;;  notice, this list of conditions and the following disclaimer in the
+;;  documentation and/or other materials provided with the distribution.
+;;
+;;THIS SOFTWARE IS PROVIDED BY AUTHOR AND CONTRIBUTORS ``AS IS'' AND
+;;ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+;;IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+;;ARE DISCLAIMED.  IN NO EVENT SHALL AUTHOR OR CONTRIBUTORS BE LIABLE
+;;FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+;;DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS
+;;OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION)
+;;HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
+;;LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY
+;;OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
+;;SUCH DAMAGE.
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; STE.INF
+;;
+;; 仮想 NIC ドライバ
+;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; Version セクション
+;;
+;;   Class, ClassGuid はデバイスの種類によって決まっている
+;;   NIC なら以下でよいようだ。
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+[version]
+Class     = Net                                    ;;; NIC であればこれ。
+ClassGUID = {4d36e972-e325-11ce-bfc1-08002be10318} ;;; Net Class の場合の ClassGUID。
+Signature = "$Windows NT$"                         ;;; NT ベースの OS の場合は必須
+Provider  = %Admin2%                               ;;; 配布元
+DriverVer = 05/09/2005,1.0.0.1                     ;;; バージョン
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;
+;; Manufucture セクション
+;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+[Manufacturer] 
+;%strkey%=models-section-name 
+%Admin2% = Admin2
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;
+;; Model セクション
+;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+[Admin2] 
+;                    Install
+; DisplayName        Section       DeviceID
+;-----------------  --------- ------------------------------------------
+%Ste.DeviceDesc%  = Ste_Inst, root\Ste ; Root enumerated 
+%Ste.DeviceDesc%  = Ste_Inst, {b85b7c50-6a01-11d2-b841-00c04fad5171}\Ste ; Toaster Bus enumerated 
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;
+;; ControlFlags セクション
+;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+[ControlFlags]
+ExcludeFromSelect = {b85b7c50-6a01-11d2-b841-00c04fad5171}\Ste
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;
+;; DDInstall セクション
+;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+[Ste_Inst]
+Characteristics =  0x1     ; 0x1 は NCF_VIRTUAL(仮想アダプタ)
+; Directive        Section Name                
+;--------------   --------------
+AddReg          =  Ste.Reg       ;add-registry-section
+CopyFiles       =  Ste.CopyFiles ;file-list-section
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;
+;; DDInstall.Services セクション
+;;
+;;   DDInstall セクションの拡張
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+[Ste_Inst.Services]
+;                 ServicName Flag   Service-Install-Section  Event-Log-Install-Section
+;---------------- ---------- -----  -----------------------  -----------------------
+AddService      =  Ste,       2,     Ste.Service,             Ste.EventLog
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;
+;; Add-Registry セクション
+;;
+;; SYSTEM\ControlSet001\Control\Class\{..略..}\00?\ 等に書かれる内容
+;; 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+[Ste.Reg]
+HKR, ,                   BusNumber,       0, "0" 
+HKR, Ndi,                Service,         0, "Ste"
+HKR, Ndi\Interfaces,     UpperRange,      0, "ndis5"
+HKR, Ndi\Interfaces,     LowerRange,      0, "ethernet"
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;
+;; FileList セクション
+;; 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+[Ste.CopyFiles]
+;destination-file, source-file, temporary-file, flag
+;----------------------------------------------------------------------
+Ste.sys, , ,2  ; 2 は (COPYFLG_NOSKIP) 
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;
+;; Service-Install セクション
+;;
+;;  %12% は定義済みのpathで,%windir%\system32\drivers を現す
+;; 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+[Ste.Service]
+DisplayName     = %Ste.Service.DispName%
+ServiceType     = 1  ; SERVICE_KERNEL_DRIVER
+StartType       = 3  ; SERVICE_DEMAND_START
+ErrorControl    = 1  ; SERVICE_ERROR_NORMAL
+ServiceBinary   = %12%\ste.sys   
+LoadOrderGroup  = NDIS
+AddReg          = TextModeFlags.Reg ;add-registry-section
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;
+;; Event-Log-Install セクション
+;; 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+[Ste.EventLog]
+AddReg = Ste.AddEventLog.Reg ;add-registry-section
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;
+;; Add-Registry セクション
+;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+[Ste.AddEventLog.Reg]
+HKR,,EventMessageFile, 0x00020000, "%%SystemRoot%%\System32\netevent.dll"
+HKR,,TypesSupported,   0x00010001, 7
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;
+;; Add-Registry セクション
+;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+[TextModeFlags.Reg]
+HKR,,TextModeFlags, 0x00010001, 0x0001
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;
+;; SourceDisksNames セクション
+;;
+;;   インストールディスクの指定
+;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+[SourceDisksNames]
+; diskid = description[, [tagfile] [, <unused>, subdir]]
+1        = %Disk1%,,,""
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;
+;; SourceDisksFiles セクション
+;;
+;;   コピーするドライバーのファイル名と、そのファイルがある
+;;   ディスクID とディレクトリ。
+;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+[SourceDisksFiles]
+; source file = diskID, subdir
+ste.sys  = 1,\i386
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;
+;; DestinationDirs セクション
+;; 
+;;   ドライバーのコピー先
+;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+[DestinationDirs]
+Ste.CopyFiles = 12 ;;; \winnt\system32\drivers\
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;
+;; Strings セクション
+;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+[Strings]
+Admin2                = "Admin2"
+Ste.DeviceDesc        = "Ste Virtual NIC"
+Ste.Service.DispName  = "Ste Virtual Miniport"
+Disk1                 = "Ste Virtual NIC Driver Installation Disk"
