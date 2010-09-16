@@ -27,93 +27,93 @@
 /********************************************************************************
  * ste.c
  * 
- * �h���C�o�̐���
+ * ドライバの説明
  *
  *    ste.sys
  * 
- *    ���z NIC�i�l�b�g���[�N�C���^�[�t�F�[�X�J�[�h�j�f�o�C�X�h���C�o ste �� Windows �ŁB
- *    NDIS �󂯎�����f�[�^�� Ethernet �t���[���Ƃ��ă��[�U�v���Z�X�ł��� sted �ɓn���A
- *    �܂��Asted ����󂯎���� Ethernet�t���[���̃f�[�^���� NDIS �ɓn���B
+ *    仮想 NIC（ネットワークインターフェースカード）デバイスドライバ ste の Windows 版。
+ *    NDIS 受け取ったデータを Ethernet フレームとしてユーザプロセスである sted に渡し、
+ *    また、sted から受け取った Ethernetフレームのデータ部を NDIS に渡す。
  *
- *  �{���W���[���̐���
+ *  本モジュールの説明
  *
  *     ste.c
  *
- *    �{���W���[���� NDIS ����Ăяo�����̃G���g���|�C���g�iSteMiniportXXX�j���L�q��
- *    ��Ă���ADriverEntry() �ɂāA�����̃G���g���|�C���g�̓o�^���s���B
+ *    本モジュールは NDIS から呼び出されるのエントリポイント（SteMiniportXXX）が記述さ
+ *    れており、DriverEntry() にて、これらのエントリポイントの登録を行う。
  *
- *  �ύX����:
+ *  変更履歴:
  *    2005/07/18
- *      o Opackets ���J�E���g����悤�ɕύX�����B
+ *      o Opackets をカウントするように変更した。
  *     
  ************************************************************************************/
 #include "ste.h"
 
-NDIS_HANDLE      NdisWrapperHandle;     // DireverEntry() �̒��Ŏg����B�G���Ă͂����Ȃ��B
-NDIS_SPIN_LOCK   SteGlobalSpinLock;     // �h���C�o�̃O���[�o�����b�N
-STE_ADAPTER     *SteAdapterHead = NULL; // STE_ADAPTER �̃����N���X�g�̃w�b�h
+NDIS_HANDLE      NdisWrapperHandle;     // DireverEntry() の中で使われる。触ってはいけない。
+NDIS_SPIN_LOCK   SteGlobalSpinLock;     // ドライバのグローバルロック
+STE_ADAPTER     *SteAdapterHead = NULL; // STE_ADAPTER のリンクリストのヘッド
 
-// �T�|�[�g���K�{(M)�̍��ڂ̂ݒ��o(�S 34 OID)
+// サポートが必須(M)の項目のみ抽出(全 34 OID)
 NDIS_OID STESupportedList[] = {
     //
-    // ��ʓI�ȓ��� (22 OID)
+    // 一般的な特性 (22 OID)
     //
-    OID_GEN_SUPPORTED_LIST,        // �T�|�[�g����� OID �̃��X�g
-    OID_GEN_HARDWARE_STATUS,       // �n�[�h�E�F�A�X�e�[�^�X
-    OID_GEN_MEDIA_SUPPORTED,       // NIC ���T�|�[�g�ł���i���K�{�ł͂Ȃ��j���f�B�A�^�C�v
-    OID_GEN_MEDIA_IN_USE,          // NIC �����ݎg���Ă��銮�S�ȃ��f�B�A�^�C�v�̃��X�g
-    OID_GEN_MAXIMUM_LOOKAHEAD,     // NIC �� lookahead �f�[�^�Ƃ��Ē񋟂ł���ő�o�C�g��
-    OID_GEN_MAXIMUM_FRAME_SIZE,    // NIC ���T�|�[�g����A�w�b�_�𔲂����l�b�g���[�N�p�P�b�g�T�C�Y
-    OID_GEN_LINK_SPEED,            // NIC ���T�|�[�g����ő�X�s�[�h
-    OID_GEN_TRANSMIT_BUFFER_SPACE, // NIC ��̑��M�p�̃������̑���
-    OID_GEN_RECEIVE_BUFFER_SPACE,  // NIC ��̎�M�p�̃������̑���
-    OID_GEN_TRANSMIT_BLOCK_SIZE,   // NIC ���T�|�[�g���鑗�M�p�̃l�b�g���[�N�p�P�b�g�T�C�Y
-    OID_GEN_RECEIVE_BLOCK_SIZE,    // NIC ���T�|�[�g�����M�p�̃l�b�g���[�N�p�P�b�g�T�C�Y
-    OID_GEN_VENDOR_ID,             // IEEE �ɓo�^���Ă���x���_�[�R�[�h�i�o�^����ĂȂ��ꍇ 0xFFFFFF�j
-    OID_GEN_VENDOR_DESCRIPTION,    // NIC �̃x���_�[��
-    OID_GEN_VENDOR_DRIVER_VERSION, // �h���C�o�[�̃o�[�W����
-    OID_GEN_CURRENT_PACKET_FILTER, // �v���g�R���� NIC ����󂯎��p�P�b�g�̃^�C�v
-    OID_GEN_CURRENT_LOOKAHEAD,     // ���݂� lookahead �̃o�C�g��
-    OID_GEN_DRIVER_VERSION,        // NDIS �̃o�[�W����
-    OID_GEN_MAXIMUM_TOTAL_SIZE,    // NIC ���T�|�[�g����l�b�g���[�N�p�P�b�g�T�C�Y
-    OID_GEN_PROTOCOL_OPTIONS,      // �I�v�V�����̃v���g�R���t���O
-    OID_GEN_MAC_OPTIONS,           // �ǉ��� NIC �̃v���p�e�B���`�����r�b�g�}�X�N
-    OID_GEN_MEDIA_CONNECT_STATUS,  // NIC ��� connection ���
-    OID_GEN_MAXIMUM_SEND_PACKETS,  // ���̃��N�G�X�g�Ŏ󂯂���p�P�b�g�̍ő吔
+    OID_GEN_SUPPORTED_LIST,        // サポートされる OID のリスト
+    OID_GEN_HARDWARE_STATUS,       // ハードウェアステータス
+    OID_GEN_MEDIA_SUPPORTED,       // NIC がサポートできる（が必須ではない）メディアタイプ
+    OID_GEN_MEDIA_IN_USE,          // NIC が現在使っている完全なメディアタイプのリスト
+    OID_GEN_MAXIMUM_LOOKAHEAD,     // NIC が lookahead データとして提供できる最大バイト数
+    OID_GEN_MAXIMUM_FRAME_SIZE,    // NIC がサポートする、ヘッダを抜いたネットワークパケットサイズ
+    OID_GEN_LINK_SPEED,            // NIC がサポートする最大スピード
+    OID_GEN_TRANSMIT_BUFFER_SPACE, // NIC 上の送信用のメモリの総量
+    OID_GEN_RECEIVE_BUFFER_SPACE,  // NIC 上の受信用のメモリの総量
+    OID_GEN_TRANSMIT_BLOCK_SIZE,   // NIC がサポートする送信用のネットワークパケットサイズ
+    OID_GEN_RECEIVE_BLOCK_SIZE,    // NIC がサポートする受信用のネットワークパケットサイズ
+    OID_GEN_VENDOR_ID,             // IEEE に登録してあるベンダーコード（登録されてない場合 0xFFFFFF）
+    OID_GEN_VENDOR_DESCRIPTION,    // NIC のベンダー名
+    OID_GEN_VENDOR_DRIVER_VERSION, // ドライバーのバージョン
+    OID_GEN_CURRENT_PACKET_FILTER, // プロトコルが NIC から受け取るパケットのタイプ
+    OID_GEN_CURRENT_LOOKAHEAD,     // 現在の lookahead のバイト数
+    OID_GEN_DRIVER_VERSION,        // NDIS のバージョン
+    OID_GEN_MAXIMUM_TOTAL_SIZE,    // NIC がサポートするネットワークパケットサイズ
+    OID_GEN_PROTOCOL_OPTIONS,      // オプションのプロトコルフラグ
+    OID_GEN_MAC_OPTIONS,           // 追加の NIC のプロパティを定義したビットマスク
+    OID_GEN_MEDIA_CONNECT_STATUS,  // NIC 上の connection 状態
+    OID_GEN_MAXIMUM_SEND_PACKETS,  // 一回のリクエストで受けられるパケットの最大数
     //
-    // ��ʓI�ȓ��v��� (5 OID)
+    // 一般的な統計情報 (5 OID)
     //
-    OID_GEN_XMIT_OK,               // ����ɑ��M�ł����t���[����
-    OID_GEN_RCV_OK,                // ����Ɏ�M�ł����t���[����
-    OID_GEN_XMIT_ERROR,            // ���M�ł��Ȃ������i�������̓G���[�ɂȂ����j�t���[����
-    OID_GEN_RCV_ERROR,             // ��M�ł��Ȃ������i�������̓G���[�ɂȂ����j�t���[����
-    OID_GEN_RCV_NO_BUFFER,         // �o�b�t�@�s���̂��߂Ɏ�M�ł��Ȃ������t���[����
+    OID_GEN_XMIT_OK,               // 正常に送信できたフレーム数
+    OID_GEN_RCV_OK,                // 正常に受信できたフレーム数
+    OID_GEN_XMIT_ERROR,            // 送信できなかった（もしくはエラーになった）フレーム数
+    OID_GEN_RCV_ERROR,             // 受信できなかった（もしくはエラーになった）フレーム数
+    OID_GEN_RCV_NO_BUFFER,         // バッファ不足のために受信できなかったフレーム数
     //
-    // Ethernet �p�̓��� (4 OID)
+    // Ethernet 用の特性 (4 OID)
     //
-    OID_802_3_PERMANENT_ADDRESS,   // �n�[�h�E�F�A�ɏ�����Ă��� MAC �A�h���X
-    OID_802_3_CURRENT_ADDRESS,     // NIC �̌��݂� MAC �A�h���X
-    OID_802_3_MULTICAST_LIST,      // ���݂̃}���`�L���X�g�p�P�b�g�̃A�h���X���X�g
-    OID_802_3_MAXIMUM_LIST_SIZE,   // NIC �h���C�o���Ǘ��ł���ő�̃}���`�L���X�g�A�h���X�̐�
+    OID_802_3_PERMANENT_ADDRESS,   // ハードウェアに書かれている MAC アドレス
+    OID_802_3_CURRENT_ADDRESS,     // NIC の現在の MAC アドレス
+    OID_802_3_MULTICAST_LIST,      // 現在のマルチキャストパケットのアドレスリスト
+    OID_802_3_MAXIMUM_LIST_SIZE,   // NIC ドライバが管理できる最大のマルチキャストアドレスの数
     //
-    // Ethernet �p���v��� (3 OID)
+    // Ethernet 用統計情報 (3 OID)
     //
-    OID_802_3_RCV_ERROR_ALIGNMENT,   // �A���C�����g�G���[�̎�M�t���[����
-    OID_802_3_XMIT_ONE_COLLISION,    // �R���W������ 1 �񔭐��������M�t���[����
-    OID_802_3_XMIT_MORE_COLLISIONS   // �R���W������ 1 ��ȏ㔭���������M�t���[����
+    OID_802_3_RCV_ERROR_ALIGNMENT,   // アライメントエラーの受信フレーム数
+    OID_802_3_XMIT_ONE_COLLISION,    // コリジョンが 1 回発生した送信フレーム数
+    OID_802_3_XMIT_MORE_COLLISIONS   // コリジョンが 1 回以上発生した送信フレーム数
 };
 
 /*****************************************************************************
  * DriverEntry()
  *
- *   ���̊֐��̂� System �����̃h���C�o�����[�h����Ƃ��ɌĂ΂�A�h���C�o��
- *   NDIS �Ɗ֘A�t���A�G���g���|�C���g��o�^����B
+ *   この関数のは System がこのドライバをロードするときに呼ばれ、ドライバを
+ *   NDIS と関連付け、エントリポイントを登録する。
  * 
- * ����:
- *     DriverObject :  �h���C�o�[�I�u�W�F�N�g�̃|�C���^
- *     RegistryPath :  �h���C�o�[�̃��W�X�g���̃p�X �֘A�t��
+ * 引数:
+ *     DriverObject :  ドライバーオブジェクトのポインタ
+ *     RegistryPath :  ドライバーのレジストリのパス 関連付け
  *  
- * �Ԃ�l:
+ * 返り値:
  * 
  *     NDIS_STATUS 
  * 
@@ -131,13 +131,13 @@ DriverEntry(
     NdisZeroMemory(&MiniportCharacteristics, sizeof(NDIS_MINIPORT_CHARACTERISTICS));
 
     /*
-     * �~�j�|�[�g�h���C�o�� NDIS �Ɋ֘A�t�����ANdisWrapperHandle �𓾂�B
+     * ミニポートドライバを NDIS に関連付けし、NdisWrapperHandle を得る。
      */
     NdisMInitializeWrapper(
         &NdisWrapperHandle, // OUT PNDIS_HANDLE  
-        DriverObject,       // IN �h���C�o�[�I�u�W�F�N�g
-        RegistryPath,       // IN ���W�X�g���p�X
-        NULL                // IN �K�� NULL
+        DriverObject,       // IN ドライバーオブジェクト
+        RegistryPath,       // IN レジストリパス
+        NULL                // IN 必ず NULL
         );
 
     if(NdisWrapperHandle == NULL){
@@ -171,7 +171,7 @@ DriverEntry(
         return(Status);
     }
 
-    // �O���[�o�����b�N��������
+    // グローバルロックを初期化
     NdisAllocateSpinLock(&SteGlobalSpinLock);
 
     NdisMRegisterUnloadHandler(NdisWrapperHandle, SteMiniportUnload);    
@@ -182,11 +182,11 @@ DriverEntry(
 /*************************************************************************
  * SteMiniportinitialize()
  *
- * �@NDIS �G���g���|�C���g
- *   �l�b�g���[�N I/O ����̂��߂� NIC �h���C�o���l�b�g���[�N I/O �����
- *   ���邽�߂ɕK�v�ȃ��\�[�X���m�ۂ���B
+ * 　NDIS エントリポイント
+ *   ネットワーク I/O 操作のために NIC ドライバがネットワーク I/O 操作を
+ *   するために必要なリソースを確保する。
  *
- *  ����:
+ *  引数:
  *
  *         OpenErrorStatus              OUT PNDIS_STATUS 
  *         SelectedMediumIndex          OUT PUINT        
@@ -195,9 +195,9 @@ DriverEntry(
  *         MiniportAdapterHandle        IN NDIS_HANDLE   
  *         WrapperConfigurationContext  IN NDIS_HANDLE   
  *
- *  �Ԃ�l:
+ *  返り値:
  *    
- *     ���펞: NDIS_STATUS_SUCCESS
+ *     正常時: NDIS_STATUS_SUCCESS
  *
  *************************************************************************/
 NDIS_STATUS 
@@ -227,17 +227,17 @@ SteMiniportInitialize(
         }
     }
 
-    // �r���� break ���邽�߂����� Do-While ��
+    // 途中で break するためだけの Do-While 文
     do {
         if(!MediaFound){
-            // ��L�� for ���Ō������Ȃ������悤��
+            // 上記の for 文で見つけられなかったようだ
             DEBUG_PRINT0(1, "SteMiniportInitialize: No Media much\n");        
             Status = NDIS_STATUS_UNSUPPORTED_MEDIA;
             break;
         }
 
         //
-        // Adapter ���m�ۂ��A����������
+        // Adapter を確保し、初期化する
         //
         if ((Status = SteCreateAdapter(&Adapter)) != NDIS_STATUS_SUCCESS){
             DEBUG_PRINT0(1, "SteMiniportInitialize: Can't allocate memory for STE_ADAPTER\n");
@@ -250,29 +250,29 @@ SteMiniportInitialize(
         Adapter->MiniportAdapterHandle = MiniportAdapterHandle;
 
         //
-        // Registory ��ǂޏ����B...�ȗ��B
+        // Registory を読む処理。...省略。
         //    NdisOpenConfiguration();
         //    NdisReadConfiguration();
         //
-        // NIC �̂��߂̃n�[�h�E�F�A���\�[�X�̃��X�g�𓾂�B...�ȗ��B
+        // NIC のためのハードウェアリソースのリストを得る。...省略。
         //    NdisMQueryAdapterResources()
         //
 
         //
-        // NDIS �� NIC �̏���`����B
-        // ���Ȃ炸 NdisXxx �֐����Ăяo�����O�ɁA�ȉ��� NdisMSetAttributesEx
-        // ���Ăяo���Ȃ���΂Ȃ�Ȃ��B
+        // NDIS に NIC の情報を伝える。
+        // かならず NdisXxx 関数を呼び出すより前に、以下の NdisMSetAttributesEx
+        // を呼び出さなければならない。
         //
         NdisMSetAttributesEx(
             MiniportAdapterHandle,       //IN NDIS_HANDLE 
             (NDIS_HANDLE) Adapter,       //IN NDIS_HANDLE 
             0,                           //IN UINT  
-            NDIS_ATTRIBUTE_DESERIALIZE,  //IN ULONG  Deserialized �~�j�|�[�g�h���C�o
+            NDIS_ATTRIBUTE_DESERIALIZE,  //IN ULONG  Deserialized ミニポートドライバ
             NdisInterfaceInternal        //IN NDIS_INTERFACE_TYPE 
             );
 
         //
-        // NDIS 5.0 �̏ꍇ�͂��Ȃ炸 SHUTDOWN_HANDLER ��o�^���Ȃ���΂Ȃ�Ȃ��B
+        // NDIS 5.0 の場合はかならず SHUTDOWN_HANDLER を登録しなければならない。
         //
         NdisMRegisterAdapterShutdownHandler(
             MiniportAdapterHandle,                         // IN NDIS_HANDLE
@@ -281,13 +281,13 @@ SteMiniportInitialize(
             );
 
         //
-        // ���z NIC �f�[��������� IOCT/ReadFile/WriteFile �p��
-        // �f�o�C�X���쐬���ADispatch�@���[�`����o�^����B
+        // 仮想 NIC デーモンからの IOCT/ReadFile/WriteFile 用の
+        // デバイスを作成し、Dispatch　ルーチンを登録する。
         //
         SteRegisterDevice(Adapter);
     
         //
-        // SteRecvTimerFunc() ���ĂԂ��߂̃^�C�}�[�I�u�W�F�N�g��������
+        // SteRecvTimerFunc() を呼ぶためのタイマーオブジェクトを初期化
         //
 
         NdisInitializeTimer(
@@ -296,7 +296,7 @@ SteMiniportInitialize(
             (PVOID)Adapter           //IN PVOID
             );
         //
-        // SteResetTimerFunc() ���ĂԂ��߂̃^�C�}�[�I�u�W�F�N�g��������
+        // SteResetTimerFunc() を呼ぶためのタイマーオブジェクトを初期化
         //
         NdisInitializeTimer(
             &Adapter->ResetTimer,    //IN OUT PNDIS_TIMER  
@@ -313,18 +313,18 @@ SteMiniportInitialize(
 /****************************************************************************
  * SteMiniportShutdown()
  *
- *   NDIS �G���g���|�C���g
- *   �V�X�e���̃V���b�g�_�E����A�\�����ʃV�X�e���G���[���ɁANIC ���������
- *   �ɖ߂����߂ɌĂ΂��B�����ł̓��������\�[�X�����������A�p�P�b�g�̓]
- *   ��������҂�����͂��Ȃ�
+ *   NDIS エントリポイント
+ *   システムのシャットダウンや、予期せぬシステムエラー時に、NIC を初期状態
+ *   に戻すために呼ばれる。ここではメモリリソースを解放したり、パケットの転
+ *   送完了を待ったりはしない
  *
- * ����:
+ * 引数:
  *
- *    ShutdownContext : STE_ADAPTER �\���̂̃|�C���^
+ *    ShutdownContext : STE_ADAPTER 構造体のポインタ
  *
- * �߂�l:
+ * 戻り値:
  *
- *    ����
+ *    無し
  *
 ***************************************************************************/
 VOID
@@ -344,21 +344,21 @@ SteMiniportShutdown(
 /************************************************************************
  * SteMiniportQueryInformation()
  *
- *  NDIS �G���g���|�C���g
- *  OID �̒l��₢���킹�邽�߂� NDIS �ɂ���ČĂ΂��B
+ *  NDIS エントリポイント
+ *  OID の値を問い合わせるために NDIS によって呼ばれる。
  * 
- * ����:
+ * 引数:
  * 
- *     MiniportAdapterContext  :   STE_ADAPTER �\���̂̃|�C���^
- *     Oid                     :   ���̖₢���킹�� OID
- *     InformationBuffer       :   ���̂��߂̃o�b�t�@�[
- *     InformationBufferLength :   �o�b�t�@�̃T�C�Y
- *     BytesWritten            :   �����̏�񂪋L�q���ꂽ��
- *     BytesNeeded             :   �o�b�t�@�����Ȃ��ꍇ�ɕK�v�ȃT�C�Y���w��
+ *     MiniportAdapterContext  :   STE_ADAPTER 構造体のポインタ
+ *     Oid                     :   この問い合わせの OID
+ *     InformationBuffer       :   情報のためのバッファー
+ *     InformationBufferLength :   バッファのサイズ
+ *     BytesWritten            :   いくつの情報が記述されたか
+ *     BytesNeeded             :   バッファが少ない場合に必要なサイズを指示
  * 
- * �Ԃ�l:
+ * 返り値:
  *
- *     ���펞 :  NDIS_STATUS_SUCCESS
+ *     正常時 :  NDIS_STATUS_SUCCESS
  *     
  ************************************************************************/
 NDIS_STATUS
@@ -373,10 +373,10 @@ SteMiniportQueryInformation(
 {
     NDIS_STATUS     Status = NDIS_STATUS_SUCCESS;
     STE_ADAPTER    *Adapter;
-    PVOID           Information = NULL;     // �񋟂�����ւ̃|�C���^
-    ULONG           InformationLength = 0;  // �񋟂�����̒���
-    ULONG           ulTemp;                 // �����l�̏��̂��߂̗̈�i�}�N�����ŗ��p�j
-    CHAR            VendorName[] = STE_VENDOR_NAME; // �x���_�[��
+    PVOID           Information = NULL;     // 提供する情報へのポインタ
+    ULONG           InformationLength = 0;  // 提供する情報の長さ
+    ULONG           ulTemp;                 // 整数値の情報のための領域（マクロ内で利用）
+    CHAR            VendorName[] = STE_VENDOR_NAME; // ベンダー名
 
     DEBUG_PRINT0(3, "SteMiniportQueryInformation called\n");    
 
@@ -385,111 +385,111 @@ SteMiniportQueryInformation(
     DEBUG_PRINT1(3, "SteMiniportQueryInformation: Oid = 0x%x\n", Oid);        
 
     switch(Oid) {    
-        // ��ʓI�ȓ��� �i22��)
-        case OID_GEN_SUPPORTED_LIST:        //�T�|�[�g����� OID �̃��X�g
+        // 一般的な特性 （22個)
+        case OID_GEN_SUPPORTED_LIST:        //サポートされる OID のリスト
             SET_INFORMATION_BY_POINTER(sizeof(STESupportedList), &STESupportedList);
             
-        case OID_GEN_HARDWARE_STATUS:       // �n�[�h�E�F�A�X�e�[�^�X
+        case OID_GEN_HARDWARE_STATUS:       // ハードウェアステータス
             SET_INFORMATION_BY_VALUE(sizeof(NDIS_HARDWARE_STATUS), NdisHardwareStatusReady);
             
-        case OID_GEN_MEDIA_SUPPORTED:       // NIC ���T�|�[�g�ł���i���K�{�ł͂Ȃ��j���f�B�A�^�C�v
-        case OID_GEN_MEDIA_IN_USE:          // NIC �����ݎg���Ă��銮�S�ȃ��f�B�A�^�C�v�̃��X�g
+        case OID_GEN_MEDIA_SUPPORTED:       // NIC がサポートできる（が必須ではない）メディアタイプ
+        case OID_GEN_MEDIA_IN_USE:          // NIC が現在使っている完全なメディアタイプのリスト
             SET_INFORMATION_BY_VALUE(sizeof(NDIS_MEDIUM), NdisMedium802_3);
             
-        case OID_GEN_MAXIMUM_LOOKAHEAD:     // NIC �� lookahead �f�[�^�Ƃ��Ē񋟂ł���ő�o�C�g��
-        case OID_GEN_MAXIMUM_FRAME_SIZE:    // NIC ���T�|�[�g����A�w�b�_�𔲂����l�b�g���[�N�p�P�b�g�T�C�Y
+        case OID_GEN_MAXIMUM_LOOKAHEAD:     // NIC が lookahead データとして提供できる最大バイト数
+        case OID_GEN_MAXIMUM_FRAME_SIZE:    // NIC がサポートする、ヘッダを抜いたネットワークパケットサイズ
             SET_INFORMATION_BY_VALUE(sizeof(ULONG), ETHERMTU);
             
-        case OID_GEN_LINK_SPEED:            //NIC ���T�|�[�g����ő�X�s�[�h
+        case OID_GEN_LINK_SPEED:            //NIC がサポートする最大スピード
             SET_INFORMATION_BY_VALUE(sizeof(ULONG), ETHERLINKSPEED);
             
-        case OID_GEN_TRANSMIT_BUFFER_SPACE: // NIC ��̑��M�p�̃������̑���
-            // TODO: ����ł����̂��H
+        case OID_GEN_TRANSMIT_BUFFER_SPACE: // NIC 上の送信用のメモリの総量
+            // TODO: これでいいのか？
             SET_INFORMATION_BY_VALUE(sizeof(ULONG), ETHERMTU);
             
-        case OID_GEN_RECEIVE_BUFFER_SPACE:  // NIC ��̎�M�p�̃������̑���
-            // TODO: ����ł����̂��H
+        case OID_GEN_RECEIVE_BUFFER_SPACE:  // NIC 上の受信用のメモリの総量
+            // TODO: これでいいのか？
             SET_INFORMATION_BY_VALUE(sizeof(ULONG), ETHERMTU);            
             
-        case OID_GEN_TRANSMIT_BLOCK_SIZE:   // NIC ���T�|�[�g���鑗�M�p�̃l�b�g���[�N�p�P�b�g�T�C�Y
+        case OID_GEN_TRANSMIT_BLOCK_SIZE:   // NIC がサポートする送信用のネットワークパケットサイズ
             SET_INFORMATION_BY_VALUE(sizeof(ULONG), ETHERMAX);                        
 
-        case OID_GEN_RECEIVE_BLOCK_SIZE:    // NIC ���T�|�[�g�����M�p�̃l�b�g���[�N�p�P�b�g�T�C�Y
+        case OID_GEN_RECEIVE_BLOCK_SIZE:    // NIC がサポートする受信用のネットワークパケットサイズ
             SET_INFORMATION_BY_VALUE(sizeof(ULONG), ETHERMAX);                                    
 
-        case OID_GEN_VENDOR_ID:             // IEEE �ɓo�^���Ă���x���_�[�R�[�h
+        case OID_GEN_VENDOR_ID:             // IEEE に登録してあるベンダーコード
             SET_INFORMATION_BY_VALUE(sizeof(ULONG), 0xFFFFFF);            
             
-        case OID_GEN_VENDOR_DESCRIPTION:    // NIC �̃x���_�[��
+        case OID_GEN_VENDOR_DESCRIPTION:    // NIC のベンダー名
             SET_INFORMATION_BY_POINTER(sizeof(VendorName), VendorName);
             
-        case OID_GEN_VENDOR_DRIVER_VERSION: // �h���C�o�[�̃o�[�W����
+        case OID_GEN_VENDOR_DRIVER_VERSION: // ドライバーのバージョン
             SET_INFORMATION_BY_VALUE(sizeof(ULONG), STE_DRIVER_VERSION);                        
 
-        case OID_GEN_CURRENT_PACKET_FILTER: // �v���g�R���� NIC ����󂯎��p�P�b�g�̃^�C�v
+        case OID_GEN_CURRENT_PACKET_FILTER: // プロトコルが NIC から受け取るパケットのタイプ
             SET_INFORMATION_BY_VALUE(sizeof(ULONG), Adapter->PacketFilter);
             
-        case OID_GEN_CURRENT_LOOKAHEAD:     // ���݂� lookahead �̃o�C�g��
+        case OID_GEN_CURRENT_LOOKAHEAD:     // 現在の lookahead のバイト数
             SET_INFORMATION_BY_VALUE(sizeof(ULONG), ETHERMTU);
             
-        case OID_GEN_DRIVER_VERSION:        // NDIS �̃o�[�W����
+        case OID_GEN_DRIVER_VERSION:        // NDIS のバージョン
             SET_INFORMATION_BY_VALUE(sizeof(USHORT), STE_NDIS_VERSION);
             
-        case OID_GEN_MAXIMUM_TOTAL_SIZE:    // NIC ���T�|�[�g����l�b�g���[�N�p�P�b�g�T�C�Y
+        case OID_GEN_MAXIMUM_TOTAL_SIZE:    // NIC がサポートするネットワークパケットサイズ
             SET_INFORMATION_BY_VALUE(sizeof(ULONG), ETHERMAX);
             
-       // case OID_GEN_PROTOCOL_OPTIONS:      // �I�v�V�����̃v���g�R���t���O�BSet �̂ݕK�{
+       // case OID_GEN_PROTOCOL_OPTIONS:      // オプションのプロトコルフラグ。Set のみ必須
                     
-        case OID_GEN_MAC_OPTIONS:           // �ǉ��� NIC �̃v���p�e�B���`�����r�b�g�}�X�N
+        case OID_GEN_MAC_OPTIONS:           // 追加の NIC のプロパティを定義したビットマスク
             SET_INFORMATION_BY_VALUE(sizeof(ULONG),
                                      NDIS_MAC_OPTION_NO_LOOPBACK |
                                      NDIS_MAC_OPTION_TRANSFERS_NOT_PEND |
                                      NDIS_MAC_OPTION_COPY_LOOKAHEAD_DATA);
 
-        case OID_GEN_MEDIA_CONNECT_STATUS:  // NIC ��� connection ���
-            // TODO: ��Ԃ��m�F���ANdisMediaStateDisconnected ��Ԃ��悤�ɂ���
+        case OID_GEN_MEDIA_CONNECT_STATUS:  // NIC 上の connection 状態
+            // TODO: 状態を確認し、NdisMediaStateDisconnected を返すようにする
             SET_INFORMATION_BY_VALUE(sizeof(ULONG), NdisMediaStateConnected);
             
-        case OID_GEN_MAXIMUM_SEND_PACKETS:  // ���̃��N�G�X�g�Ŏ󂯂���p�P�b�g�̍ő吔
+        case OID_GEN_MAXIMUM_SEND_PACKETS:  // 一回のリクエストで受けられるパケットの最大数
             SET_INFORMATION_BY_VALUE(sizeof(ULONG), STE_MAX_SEND_PACKETS);
 
-        // ��ʓI�ȓ��v��� (5��)
-        case OID_GEN_XMIT_OK:               // ����ɑ��M�ł����t���[����
+        // 一般的な統計情報 (5個)
+        case OID_GEN_XMIT_OK:               // 正常に送信できたフレーム数
             SET_INFORMATION_BY_VALUE(sizeof(ULONG), Adapter->Opackets);
 
-        case OID_GEN_RCV_OK:                // ����Ɏ�M�ł����t���[����
+        case OID_GEN_RCV_OK:                // 正常に受信できたフレーム数
             SET_INFORMATION_BY_VALUE(sizeof(ULONG), Adapter->Ipackets);            
 
-        case OID_GEN_XMIT_ERROR:            // ���M�ł��Ȃ������i�������̓G���[�ɂȂ����j�t���[����
+        case OID_GEN_XMIT_ERROR:            // 送信できなかった（もしくはエラーになった）フレーム数
             SET_INFORMATION_BY_VALUE(sizeof(ULONG), Adapter->Oerrors);
             
-        case OID_GEN_RCV_ERROR:             // ��M�ł��Ȃ������i�������̓G���[�ɂȂ����j�t���[����
+        case OID_GEN_RCV_ERROR:             // 受信できなかった（もしくはエラーになった）フレーム数
             SET_INFORMATION_BY_VALUE(sizeof(ULONG), Adapter->Ierrors);
             
-        case OID_GEN_RCV_NO_BUFFER:         // �o�b�t�@�s���̂��߂Ɏ�M�ł��Ȃ������t���[����
+        case OID_GEN_RCV_NO_BUFFER:         // バッファ不足のために受信できなかったフレーム数
             SET_INFORMATION_BY_VALUE(sizeof(ULONG), Adapter->NoResources);            
             
-       // Ethernet �p�̓��� (4��)
-        case OID_802_3_PERMANENT_ADDRESS:   // �n�[�h�E�F�A�ɏ�����Ă��� MAC �A�h���X
-        case OID_802_3_CURRENT_ADDRESS:     // NIC �̌��݂� MAC �A�h���X            
+       // Ethernet 用の特性 (4個)
+        case OID_802_3_PERMANENT_ADDRESS:   // ハードウェアに書かれている MAC アドレス
+        case OID_802_3_CURRENT_ADDRESS:     // NIC の現在の MAC アドレス            
             SET_INFORMATION_BY_POINTER(ETHERADDRL, Adapter->EthernetAddress);
             
-        case OID_802_3_MULTICAST_LIST:     // ���݂̃}���`�L���X�g�p�P�b�g�̃A�h���X���X�g
-            // TODO: �}���`�L���X�g���X�g���Z�b�g����B
-            // ���̂Ƃ��� 0 ��Ԃ�
+        case OID_802_3_MULTICAST_LIST:     // 現在のマルチキャストパケットのアドレスリスト
+            // TODO: マルチキャストリストをセットする。
+            // 今のところ 0 を返す
             SET_INFORMATION_BY_VALUE(ETHERADDRL, 0);            
             
-        case OID_802_3_MAXIMUM_LIST_SIZE:  // NIC �h���C�o���Ǘ��ł���ő�̃}���`�L���X�g�A�h���X�̐�
+        case OID_802_3_MAXIMUM_LIST_SIZE:  // NIC ドライバが管理できる最大のマルチキャストアドレスの数
             SET_INFORMATION_BY_VALUE(sizeof(ULONG), STE_MAX_MCAST_LIST);
             
-        // Ethernet �p���v���  (3��)
-        case OID_802_3_RCV_ERROR_ALIGNMENT:   // �A���C�����g�G���[�̎�M�t���[����
+        // Ethernet 用統計情報  (3個)
+        case OID_802_3_RCV_ERROR_ALIGNMENT:   // アライメントエラーの受信フレーム数
             SET_INFORMATION_BY_VALUE(sizeof(ULONG), Adapter->AlignErrors);
 
-        case OID_802_3_XMIT_ONE_COLLISION:    // �R���W������ 1 �񔭐��������M�t���[����
+        case OID_802_3_XMIT_ONE_COLLISION:    // コリジョンが 1 回発生した送信フレーム数
             SET_INFORMATION_BY_VALUE(sizeof(ULONG), Adapter->OneCollisions);
 
-        case OID_802_3_XMIT_MORE_COLLISIONS:  // �R���W������ 1 ��ȏ㔭���������M�t���[����
+        case OID_802_3_XMIT_MORE_COLLISIONS:  // コリジョンが 1 回以上発生した送信フレーム数
             SET_INFORMATION_BY_VALUE(sizeof(ULONG), Adapter->Collisions);            
 
         default:
@@ -501,7 +501,7 @@ SteMiniportQueryInformation(
         NdisMoveMemory(InformationBuffer, Information, InformationLength);        
         *BytesWritten = InformationLength;
     } else if(InformationLength > 0) {
-        // �o�b�t�@���������ꍇ�́A�K�v�ȃT�C�Y��ʒm����B
+        // バッファが小さい場合は、必要なサイズを通知する。
         *BytesNeeded = InformationLength;
         Status = NDIS_STATUS_BUFFER_TOO_SHORT;
     }
@@ -511,21 +511,21 @@ SteMiniportQueryInformation(
 /***************************************************************************
  * SteMiniportSetInformation()
  *
- *  NDIS �G���g���|�C���g
- *  OID �̒l��₢���킹�邽�߂� NDIS �ɂ���ČĂ΂��B
+ *  NDIS エントリポイント
+ *  OID の値を問い合わせるために NDIS によって呼ばれる。
  * 
- * ����:
+ * 引数:
  * 
- *     MiniportAdapterContext  :    Adapter �\���̂̃|�C���^
- *     Oid                     :    ���̖₢���킹�� OID
- *     InformationBuffer       :    ���̂��߂̃o�b�t�@�[
- *     InformationBufferLength :    �o�b�t�@�̃T�C�Y
- *     BytesRead               :    �����̏�񂪓ǂ܂ꂽ��
- *     BytesNeeded             :    �o�b�t�@�����Ȃ��ꍇ�ɕK�v�ȃT�C�Y���w��
+ *     MiniportAdapterContext  :    Adapter 構造体のポインタ
+ *     Oid                     :    この問い合わせの OID
+ *     InformationBuffer       :    情報のためのバッファー
+ *     InformationBufferLength :    バッファのサイズ
+ *     BytesRead               :    いくつの情報が読まれたか
+ *     BytesNeeded             :    バッファが少ない場合に必要なサイズを指示
  * 
- * �Ԃ�l:
+ * 返り値:
  * 
- *     ���펞 : NDIS_STATUS_SUCCESS
+ *     正常時 : NDIS_STATUS_SUCCESS
  * 
  *******************************************************************************/
 NDIS_STATUS
@@ -547,12 +547,12 @@ SteMiniportSetInformation(
 
     DEBUG_PRINT1(3, "SteMiniportSetInformation: Oid = 0x%x\n", Oid);
     
-    // �K�{ OID �̃Z�b�g�v������������
+    // 必須 OID のセット要求だけを実装
     // TODO:
-    // ���̂Ƃ���A�p�P�b�g�t�B���^�[�ȊO�͎��ۂɂ̓Z�b�g���Ă��Ȃ��̂ŁA�Z�b�g�ł���悤�ɂ���B
+    // 今のところ、パケットフィルター以外は実際にはセットしていないので、セットできるようにする。
     //
     switch(Oid) {
-        // ��ʓI�ȓ���         
+        // 一般的な特性         
         case OID_GEN_CURRENT_PACKET_FILTER:
             if(InformationBufferLength != sizeof(ULONG)){
                 *BytesNeeded = sizeof(ULONG);
@@ -571,7 +571,7 @@ SteMiniportSetInformation(
         case OID_GEN_PROTOCOL_OPTIONS:
             *BytesRead = InformationBufferLength;
             break;        
-        // Ethernet �̓���
+        // Ethernet の特性
         case OID_802_3_MULTICAST_LIST:
             *BytesRead = InformationBufferLength;
             break;            
@@ -587,25 +587,25 @@ SteMiniportSetInformation(
 /************************************************************************
  * SteMiniportHalt()
  *
- *     NDIS Miniport �G���g���|�C���g
- *     Halt �n���h���� NDIS �� PNP �}�l�[�W������ IRP_MN_STOP_DEVICE�A
- *     IRP_MN_SUPRISE_REMOVE�AIRP_MN_REMOVE_DEVICE �v�����󂯎������
- *     ���ɌĂ΂��BSteMiniportInitialize �Ŋm�ۂ��ꂽ�S�Ẵ��\�[�X
- *     ���������B�i����̃~�j�|�[�g�h���C�o�C���X�^���X�Ɍ��肳���)
+ *     NDIS Miniport エントリポイント
+ *     Halt ハンドラは NDIS が PNP マネージャから IRP_MN_STOP_DEVICE、
+ *     IRP_MN_SUPRISE_REMOVE、IRP_MN_REMOVE_DEVICE 要求を受け取ったと
+ *     きに呼ばれる。SteMiniportInitialize で確保された全てのリソース
+ *     を解放する。（特定のミニポートドライバインスタンスに限定される)
  *     
- *     o �S�Ă� I/O ���\�[�X�� free ���Aunmap ����B
- *     o NdisMRegisterAdapterShutdownHandler �ɂ���ēo�^���ꂽ�V���b
- *       �g�_�E���n���h����o�^��������B
- *     o NdisMCancelTimer ���Ă�ŃL���[�C���O����Ă���R�[���o�b�N
- *       ���[�`�����L�����Z������B
- *     o �S�Ă̖������̎�M�p�P�b�g����������I���܂ő҂B
+ *     o 全ての I/O リソースを free し、unmap する。
+ *     o NdisMRegisterAdapterShutdownHandler によって登録されたシャッ
+ *       トダウンハンドラを登録解除する。
+ *     o NdisMCancelTimer を呼んでキューイングされているコールバック
+ *       ルーチンをキャンセルする。
+ *     o 全ての未処理の受信パケットが処理され終わるまで待つ。
  * 
- * ����:
- *      MiniportAdapterContext	�A�_�v�^�ւ̃|�C���^
+ * 引数:
+ *      MiniportAdapterContext	アダプタへのポインタ
  *  
- * �Ԃ�l:
+ * 返り値:
  * 
- *     ����
+ *     無し
 ********************************************************************/
 VOID 
 SteMiniportHalt(
@@ -625,42 +625,42 @@ SteMiniportHalt(
         );
 
     //
-    // NdisMCancelTimer ���Ă�ŃL���[�C���O����Ă���R�[���o�b�N
-    // ���[�`�����L�����Z������B
+    // NdisMCancelTimer を呼んでキューイングされているコールバック
+    // ルーチンをキャンセルする。
     //
 
-    // ReceiveIndication �^�C�}�[���L�����Z��
+    // ReceiveIndication タイマーをキャンセル
     NdisCancelTimer(
         &Adapter->RecvTimer,  // IN  PNDIS_TIMER
         &bTimerCancelled      // OUT PBOOLEAN  
         );
-    // Reset �^�C�}�[���L�����Z��    
+    // Reset タイマーをキャンセル    
     NdisCancelTimer(
         &Adapter->ResetTimer, // IN  PNDIS_TIMER
         &bTimerCancelled      // OUT PBOOLEAN  
         );
     if (bTimerCancelled == TRUE){
-        // �L�����Z�����ꂽ�R�[���o�b�N���[�`�����������悤���B
-        // ��M�L���[�Ɏc���Ă��� Packet �͂��̌�� SteDeleteAdapter()
-        // �ɂ���� Free �����̂ŁA�����ł͉������Ȃ��B
+        // キャンセルされたコールバックルーチンがあったようだ。
+        // 受信キューに残っている Packet はこの後の SteDeleteAdapter()
+        // によって Free されるので、ここでは何もしない。
     }
 
-    // NdisMRegisterAdapterShutdownHandler �ɂ���ēo�^���ꂽ
-    // �V���b�g�_�E���n���h����o�^��������B    
+    // NdisMRegisterAdapterShutdownHandler によって登録された
+    // シャットダウンハンドラを登録解除する。    
     NdisMDeregisterAdapterShutdownHandler(
         Adapter->MiniportAdapterHandle // IN NDIS_HANDLE 
         );
 
     //
-    // ���z NIC �f�[��������� IOCT/READ/WRITE �p�̃f�o�C�X�̓o�^����������B
+    // 仮想 NIC デーモンからの IOCT/READ/WRITE 用のデバイスの登録を解除する。
     //
     SteDeregisterDevice(Adapter);
 
     //
-    // �������̎�M�ʒm�ς݃p�P�b�g���Ȃ����ǂ����`�F�b�N����B
-    // 1 �b�����ɁASTE_MAX_WAIT_FOR_RECVINDICATE(=5)��m�F���A
-    // RecvIndicatedPackets �� 0 �ɂȂ�Ȃ��悤�ł���΁A
-    // �Ȃɂ���肪�������ƍl���������ă��\�[�X�̊J���ɐi�ށB
+    // 処理中の受信通知済みパケットがないかどうかチェックする。
+    // 1 秒おきに、STE_MAX_WAIT_FOR_RECVINDICATE(=5)回確認し、
+    // RecvIndicatedPackets が 0 にならないようであれば、
+    // なにか問題があったと考え無視してリソースの開放に進む。
     //
     for ( i = 0 ; i < STE_MAX_WAIT_FOR_RECVINDICATE ; i++){
         if (Adapter->RecvIndicatedPackets == 0) {
@@ -670,8 +670,8 @@ SteMiniportHalt(
     }
     
     //
-    // Adapter ���폜����B���̂Ȃ��ŁAAdapter �ׂ̈Ɋm�ۂ��ꂽ���\�[�X��
-    // �J�����iPacket ��ABuffer�j�s����B
+    // Adapter を削除する。このなかで、Adapter の為に確保されたリソースの
+    // 開放も（Packet や、Buffer）行われる。
     //
     SteDeleteAdapter(Adapter);
 
@@ -681,31 +681,31 @@ SteMiniportHalt(
 /******************************************************************************
  * SteMiniportReset()
  *
- *    NDIS Miniport �G���g���|�C���g
- *    �ȉ��̏����̂Ƃ� NIC ���n���O���Ă���Ɣ��f���h���C�o�[�̃\�t�g�X�e�[�g
- *    �����Z�b�g���邽�߂ɌĂ΂��B
+ *    NDIS Miniport エントリポイント
+ *    以下の条件のとき NIC がハングしていると判断しドライバーのソフトステート
+ *    をリセットするために呼ばれる。
  *
- *     1) SteMiniportCheckForHang() �� TRUE ��Ԃ��Ă���
- *     2) �������̑��M�p�P�b�g�����o�����i�V���A���C�Y�h�h���C�o�̂݁j
- *     3) ��莞�ԓ��Ɋ������邱�Ƃ��ł��Ȃ������������̗v����������
+ *     1) SteMiniportCheckForHang() が TRUE を返してきた
+ *     2) 未処理の送信パケットを検出した（シリアライズドドライバのみ）
+ *     3) 一定時間内に完了することができなかった未処理の要求があった
  *
- *   ���̊֐��̒��ł͈ȉ����s��
+ *   この関数の中では以下を行う
  *   
- *     1) �L���[�C���O����Ă��鑗�M�p�P�b�g�̏�������߁ANDIS_STATUS_REQUEST_ABORTED ��Ԃ��B
- *     2) ��ʂɒʒm�����S�Ẵp�P�b�g�����^�[�����Ă������m�F����B
- *     3) ��L�Q�ɖ�肪���胊�Z�b�g�������������Ɋ����ł��Ȃ��ꍇ�AResetTimer ���Z�b�g���A
- *        NDIS_STATUS_PENDING ��Ԃ��B
+ *     1) キューイングされている送信パケットの処理をやめ、NDIS_STATUS_REQUEST_ABORTED を返す。
+ *     2) 上位に通知した全てのパケットがリターンしてきたか確認する。
+ *     3) 上記２つに問題がありリセット処理をただちに完了できない場合、ResetTimer をセットし、
+ *        NDIS_STATUS_PENDING を返す。
 
  * 
- * ����:
+ * 引数:
  * 
- *    AddressingReset        : �}���`�L���X�g��AMAC �A�h���X�Alookahead �T�C�Y
- *                             �ɕύX���������ꍇ�ɂ͂����� TRUE �ɂ��Ȃ���΂Ȃ�Ȃ��B
+ *    AddressingReset        : マルチキャストや、MAC アドレス、lookahead サイズ
+ *                             に変更があった場合にはここを TRUE にしなければならない。
  *                             
- *    MiniportAdapterContext : STE_ADAPTER �\���̂̃|�C���^                  
+ *    MiniportAdapterContext : STE_ADAPTER 構造体のポインタ                  
  * 
  * 
- *   �Ԃ�l:
+ *   返り値:
  * 
  *     NDIS_STATUS
  * 
@@ -724,12 +724,12 @@ SteMiniportReset(
 
     Adapter = (STE_ADAPTER *)MiniportAdapterContext;
 
-    // MAC �A�h���X�A�}���`�L���X�g�A�h���X�̕ύX�͂Ȃ��I�H�Ƃ��߂��� FALSE ��Ԃ�
+    // MAC アドレス、マルチキャストアドレスの変更はない！？ときめつけて FALSE を返す
     *AddressingReset = FALSE;    
 
     Status = NDIS_STATUS_REQUEST_ABORTED;
 
-    // ���M�L���[�ɓ����Ă���p�P�b�g����������
+    // 送信キューに入っているパケットを処理する
     while (SteGetQueue(&Adapter->SendQueue, &Packet) == NDIS_STATUS_SUCCESS) {
         NdisMSendComplete(
             Adapter->MiniportAdapterHandle,  //IN NDIS_HANDLE   
@@ -738,22 +738,22 @@ SteMiniportReset(
             );
     }
 
-    // ��M�L���[�ɓ����Ă���p�P�b�g����������
+    // 受信キューに入っているパケットを処理する
     while (SteGetQueue(&Adapter->RecvQueue, &Packet) == NDIS_STATUS_SUCCESS) {
         SteFreeRecvPacket(Adapter, Packet);
     }
-    // ���ꂪ�I���΁A�S�Ă̎�M�p�P�b�g���t���[����Ă���͂��B
-    // ��͏�ʃv���g�R���ɒʒm�ς݂ł܂��߂��Ă��Ă��Ȃ��p�P�b�g�����邩�ǂ�����
-    // �m�F����B
+    // これが終われば、全ての受信パケットがフリーされているはず。
+    // 後は上位プロトコルに通知済みでまだ戻ってきていないパケットがあるかどうかを
+    // 確認する。
 
     if (Adapter->RecvIndicatedPackets > 0) {
-        // �܂��߂��Ă��ĂȂ��p�P�b�g������悤���B
-        // ���Z�b�g�^�C�}�[���Z�b�g���āA��ق� SteResetTimerFunc() ����
-        // NdisMResetComplete() ���Ă�Ń��Z�b�g���������邱�Ƃɂ���B
+        // まだ戻ってきてないパケットがあるようだ。
+        // リセットタイマーをセットして、後ほど SteResetTimerFunc() から
+        // NdisMResetComplete() を呼んでリセットを完了することにする。
         NdisSetTimer(&Adapter->ResetTimer, 300);
         Status = NDIS_STATUS_PENDING;
     } else {
-        // ���Z�b�g���슮���I
+        // リセット操作完了！
         Status = NDIS_STATUS_SUCCESS;
     }
 
@@ -763,21 +763,21 @@ SteMiniportReset(
 /***************************************************************************
  * SteMiniportUnload()
  *
- *     NDIS Miniport �G���g���|�C���g
- *     �A���h���[�h�n���h���� DriverEntry �̒��Ŋl�����ꂽ���\�[�X�����
- *     ���邽�߂ɁA�h���C�o�̃A�����[�h���ɌĂ΂��B
- *     ���̃n���h���� NdisMRegisterUnloadHandler ��ʂ��ēo�^�����B
+ *     NDIS Miniport エントリポイント
+ *     アンドロードハンドラは DriverEntry の中で獲得されたリソースを解放
+ *     するために、ドライバのアンロード中に呼ばれる。
+ *     このハンドラは NdisMRegisterUnloadHandler を通して登録される。
  *
- *     ** ����**
- *     MiniportUnload() �� MiniportHalt() �Ƃ͈Ⴄ�I�I
- *     MiniportUload() �͂��L��̃X�R�[�v�����̂ɑ΂��AMiniportHalt ��
- *     ����� miniport �h���C�o�C���X�^���X�Ɍ��肳���B
+ *     ** 注意**
+ *     MiniportUnload() は MiniportHalt() とは違う！！
+ *     MiniportUload() はより広域のスコープを持つのに対し、MiniportHalt は
+ *     特定の miniport ドライバインスタンスに限定される。
  * 
- * ����:
+ * 引数:
  * 
- *     DriverObject  : �g���ĂȂ�
+ *     DriverObject  : 使ってない
  * 
- * �Ԃ�l:
+ * 返り値:
  * 
  *     None
  *
@@ -787,8 +787,8 @@ SteMiniportUnload(
     IN  PDRIVER_OBJECT      DriverObject
     )
 {
-    // DriverEntry() �Ń��\�[�X���m�ۂ��Ă��Ȃ��̂�
-    // �������Ȃ��Ă悢���̂��H
+    // DriverEntry() でリソースを確保していないので
+    // 何もしなくてよいものか？
     DEBUG_PRINT0(3, "SteMiniportUnload called\n");            
 
     return;
@@ -797,22 +797,22 @@ SteMiniportUnload(
 /*******************************************************************************
  * SteMiniportCheckForHang()
  *
- *     NDIS Miniport �G���g���|�C���g
- *     NIC �̏�Ԃ�񍐂��邽�߂ɂ�΂�A�܂��f�o�C�X�h���C�o�̔����̗L����
- *     ���j�^�[���邽�߂ɌĂ΂��B
+ *     NDIS Miniport エントリポイント
+ *     NIC の状態を報告するためによばれ、またデバイスドライバの反応の有無を
+ *     モニターするために呼ばれる。
  *     
- * ����:
+ * 引数:
  * 
- *     MiniportAdapterContext :  �A�_�v�^�̃|�C���^
+ *     MiniportAdapterContext :  アダプタのポインタ
  * 
- * �Ԃ�l:
+ * 返り値:
  * 
- *     TRUE    NDIS ���h���C�o�� MiniportReset ���Ăяo����
- *     FALSE   ����
+ *     TRUE    NDIS がドライバの MiniportReset を呼び出した
+ *     FALSE   正常
  * 
  * Note: 
- *     CheckForHang �n���h���̓^�C�}�[ DPC �̃R���e�L�X�g�ŌĂяo����܂��B
- *     ���̗��_�́Aspinlock ���m��/�������Ƃ��ɓ����܂��B
+ *     CheckForHang ハンドラはタイマー DPC のコンテキストで呼び出されます。
+ *     この利点は、spinlock を確保/解放するときに得られます。
  * 
  ******************************************************************************/
 BOOLEAN
@@ -820,7 +820,7 @@ SteMiniportCheckForHang(
     IN NDIS_HANDLE MiniportAdapterContext
     )
 {
-    // ���܂�ɏ璷�Ȃ̂ŁA�K�v�ȃf�o�b�O���x�����グ��
+    // あまりに冗長なので、必要なデバッグレベルを上げる
     DEBUG_PRINT0(4, "SteMiniportCheckForHang called\n");
     
     return(FALSE);
@@ -829,18 +829,18 @@ SteMiniportCheckForHang(
 /**************************************************************************
  * SteMiniportReturnPacket()   
  *
- *    NDIS Miniport �G���g���|�C���g
- *    ���̃h���C�o����ʃv���g�R���ɒʒm�����p�P�b�g���A�v���g�R���ɂ����
- *    �������I�������ꍇ�� NDIS �ɂ���ČĂ΂��B
+ *    NDIS Miniport エントリポイント
+ *    このドライバが上位プロトコルに通知したパケットが、プロトコルによって
+ *    処理が終了した場合に NDIS によって呼ばれる。
  *
- * ����:
+ * 引数:
  *
- *    MiniportAdapterContext :  ADAPTER �\���̂̃|�C���^
- *    Packet                 :  ���^�[������Ă����p�P�b�g
+ *    MiniportAdapterContext :  ADAPTER 構造体のポインタ
+ *    Packet                 :  リターンされてきたパケット
  *
- * �Ԃ�l:
+ * 返り値:
  *
- *    ����
+ *    無し
  *
  **************************************************************************/
 VOID 
@@ -869,19 +869,19 @@ SteMiniportReturnPacket(
 /***************************************************************************
  * SteMiniportSendPackets()
  *
- *    NDIS Miniport �G���g���|�C���g
- *    ���̃h���C�o�Ƀo�C���h���Ă���v���g�R�����A�p�P�b�g�𑗐M����ۂ�
- *    NDIS �ɂ���ČĂ΂��B
+ *    NDIS Miniport エントリポイント
+ *    このドライバにバインドしているプロトコルが、パケットを送信する際に
+ *    NDIS によって呼ばれる。
  *
- * ����:
+ * 引数:
  *
- *    MiniportAdapterContext :   �A�_�v�^�R���e�L�X�g�ւ̃|�C���^
- *    PacketArray            :   ���M����p�P�b�g�z��
- *    NumberOfPackets        :   ��L�̔z��̒���
+ *    MiniportAdapterContext :   アダプタコンテキストへのポインタ
+ *    PacketArray            :   送信するパケット配列
+ *    NumberOfPackets        :   上記の配列の長さ
  *
- * �Ԃ�l:
+ * 返り値:
  *
- *    ����
+ *    無し
  *    
  *************************************************************************/
 VOID 
@@ -900,9 +900,9 @@ SteMiniportSendPackets(
 
     Adapter = (STE_ADAPTER *) MiniportAdapterContext;
 
-    // ���z NIC �f�[��������̃C�x���g�I�u�W�F�N�g���o�^����Ă��邩
-    // TODO: Adapter ���� Lock ���쐬���AEventObject �̎Q�Ǝ���
-    // ���b�N���擾���ׂ�
+    // 仮想 NIC デーモンからのイベントオブジェクトが登録されているか
+    // TODO: Adapter 毎の Lock を作成し、EventObject の参照時に
+    // ロックを取得すべき
     if( Adapter->EventObject == NULL ) {
         DEBUG_PRINT0(2, "SteMiniportSendPackets: sted is not registerd yet\n");
         IsStedRegistered = FALSE;
@@ -920,12 +920,12 @@ SteMiniportSendPackets(
         }
         
         if(Status != NDIS_STATUS_SUCCESS){            
-            // ���M�L���[����t�A�������͉��z NIC �f�[���������o�^�̂悤���B
+            // 送信キューが一杯、もしくは仮想 NIC デーモンが未登録のようだ。
             NdisMSendComplete(
                 Adapter->MiniportAdapterHandle,  //IN NDIS_HANDLE   
                 PacketArray[i],                  //IN PNDIS_PACKET  
                 Status                           //IN NDIS_STATUS
-                // NDIS_STATUS_RESOURCES ��Ԃ����ƂɂȂ�B
+                // NDIS_STATUS_RESOURCES を返すことになる。
                 );
             Adapter->Oerrors++;
             continue;
@@ -934,7 +934,7 @@ SteMiniportSendPackets(
         Adapter->Opackets++;        
 
         /*
-         * ���z NIC �f�[�����ɃC�x���g�ʒm
+         * 仮想 NIC デーモンにイベント通知
          */
         KeSetEvent(Adapter->EventObject, 0, FALSE);
         DEBUG_PRINT0(3, "SteMiniportSendPackets: KeSetEvent Called\n");
