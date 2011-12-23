@@ -9,3 +9,8 @@ sys/i386/
 sys/objchk_win7_x86/
 exe/stehub/objchk_win7_x86/
 buildchk_win7_x86.wrn
+buildchk_wxp_x86.log
+buildchk_wxp_x86.wrn
+exe/sted/objchk_wxp_x86/
+exe/stehub/objchk_wxp_x86/
+sys/objchk_wxp_x86/
