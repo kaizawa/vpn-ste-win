@@ -1,0 +1,11 @@
+buildchk_win7_x86.log
+exe/sted/i386/
+exe/sted/objchk_win7_x86/
+exe/stehub/i386/
+exe/stehub/objchk_win7_x8
+inc/._getopt_win.h
+inc/._sted_win.h
+sys/i386/
+sys/objchk_win7_x86/
+exe/stehub/objchk_win7_x86/
+buildchk_win7_x86.wrn
