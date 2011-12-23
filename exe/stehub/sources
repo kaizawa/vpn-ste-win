@@ -1,18 +1,19 @@
-####################################################
+﻿####################################################
 # stehub.exe のコンパイル用の Sources ファイル
 ####################################################
 TARGETNAME=stehub
 TARGETTYPE=PROGRAM
 TARGETPATH=./
 
-C_DEFINES   = $(C_DEFINES) -DSTE_WINDOWS
+C_DEFINES   = $(C_DEFINES) -DSTE_WINDOWS -I..\..\inc\
 
 SOURCES = stehub.c  getopt_win.c
 
-INCLUDE = $(DDK_INC_PATH);..\..\inc\;C:\winddk\3790\inc\crt;C:\winddk\3790\inc\wnet 
+#INCLUDE = $(DDK_INC_PATH);..\..\inc
 
-TARGETLIBS=$(SDK_LIB_PATH)\setupapi.lib $(SDK_LIB_PATH)\WSock32.Lib $(SDK_LIB_PATH)\uuid.lib $(SDK_LIB_PATH)\libc.lib $(SDK_LIB_PATH)\oldnames.lib $(SDK_LIB_PATH)\kernel32.lib $(SDK_LIB_PATH)\Wsock32.Lib $(SDK_LIB_PATH)\user32.Lib $(SDK_LIB_PATH)\ws2_32.lib
+TARGETLIBS= $(SDK_LIB_PATH)\setupapi.lib $(SDK_LIB_PATH)\WSock32.Lib $(SDK_LIB_PATH)\uuid.lib $(SDK_LIB_PATH)\oldnames.lib $(SDK_LIB_PATH)\kernel32.lib $(SDK_LIB_PATH)\Wsock32.Lib $(SDK_LIB_PATH)\user32.Lib $(SDK_LIB_PATH)\ws2_32.lib
 
 UMTYPE=console
 UMBASE=0x01000000
 UMENTRY=main
+USE_LIBCMT=1
