@@ -1,4 +1,4 @@
-/*
+ï»¿/*
  * Copyright (C) 2004-2010 Kazuyoshi Aizawa. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -28,14 +28,14 @@
 
 #ifdef  STE_WINDOWS
 #include "sted_win.h"
-#define STEPATH "\\\\.\\STE"    /* ste ƒfƒoƒCƒX‚ÌƒpƒX */
+#define STEPATH "\\\\.\\STE"    /* ste ãƒ‡ãƒã‚¤ã‚¹ã®ãƒ‘ã‚¹ */
 #else
-#define STEPATH "/dev/ste"      /* ste ƒfƒoƒCƒX‚ÌƒpƒX */
+#define STEPATH "/dev/ste"      /* ste ãƒ‡ãƒã‚¤ã‚¹ã®ãƒ‘ã‚¹ */
 #endif
 
 /*
- * Windows ‚Ìê‡ SAGetLastError() ‚ğg‚Á‚Ä errno ‚ÉƒGƒ‰[”Ô†‚ğƒZƒbƒg‚·‚é
- * ‚Ü‚½AWindows ‚Ìê‡ socket ‚Ì close ‚É‚Í closesocket() ‚ğg‚¤B
+ * Windows ã®å ´åˆ SAGetLastError() ã‚’ä½¿ã£ã¦ errno ã«ã‚¨ãƒ©ãƒ¼ç•ªå·ã‚’ã‚»ãƒƒãƒˆã™ã‚‹
+ * ã¾ãŸã€Windows ã®å ´åˆ socket ã® close ã«ã¯ closesocket() ã‚’ä½¿ã†ã€‚
  */
 #ifdef STE_WINDOWS
 #define SET_ERRNO()   errno = WSAGetLastError()
@@ -46,19 +46,19 @@
 #endif
 
 /*******************************************************
- * o ‰¼‘z NIC ƒf[ƒ‚ƒ“‚ª—˜—p‚·‚éŠeíƒpƒ‰ƒ[ƒ^
+ * o ä»®æƒ³ NIC ãƒ‡ãƒ¼ãƒ¢ãƒ³ãŒåˆ©ç”¨ã™ã‚‹å„ç¨®ãƒ‘ãƒ©ãƒ¡ãƒ¼ã‚¿
  *
- *  CONNECT_REQ_SIZE     proxy ‚É‘Î‚·‚é CONNECT —v‹‚Ì•¶š’· 
- *  CONNECT_REQ_TIMEOUT  Proxy ‚©‚ç CONNECT ‚ÌƒŒƒXƒ|ƒ“ƒX‚ğó‚¯æ‚éƒ^ƒCƒ€ƒAƒEƒg
- *  STRBUFSIZE           getmsg(9F),putmsg(9F) —p‚Ìƒoƒbƒtƒ@‚ÌƒTƒCƒY 
- *  PORT_NO              ƒfƒtƒHƒ‹ƒg‚Ì‰¼‘zƒnƒu‚Ìƒ|[ƒg”Ô†
- *  SOCKBUFSIZE          recv(), send() —p‚Ìƒoƒbƒtƒ@‚ÌƒTƒCƒY                
- *  ERR_MSG_MAX          syslog ‚âASTDERR ‚Éo—Í‚·‚éƒƒbƒZ[ƒW‚ÌƒTƒCƒY   
- *  SENDBUF_THRESHOLD    ‘—Mˆêƒoƒbƒtƒ@‚Ìƒf[ƒ^‚ğ‘—M‚·‚é‚µ‚«‚¢’lB
- *  SELECT_TIMEOUT       select() —p‚Ìƒ^ƒCƒ€ƒAƒEƒgiSolaris —p)
- *  HTTP_STAT_OK         HTTP ‚ÌƒXƒe[ƒ^ƒXƒR[ƒh OK
- *  MAXHOSTNAME          ƒzƒXƒg–¼iHUB‚âProxyj‚ÌÅ‘å’· 
- *  GETMSG_MAXWAIT       getmsg(9F) ‚Ìƒ^ƒCƒ€ƒAƒEƒg’liSolaris —p)
+ *  CONNECT_REQ_SIZE     proxy ã«å¯¾ã™ã‚‹ CONNECT è¦æ±‚ã®æ–‡å­—é•· 
+ *  CONNECT_REQ_TIMEOUT  Proxy ã‹ã‚‰ CONNECT ã®ãƒ¬ã‚¹ãƒãƒ³ã‚¹ã‚’å—ã‘å–ã‚‹ã‚¿ã‚¤ãƒ ã‚¢ã‚¦ãƒˆ
+ *  STRBUFSIZE           getmsg(9F),putmsg(9F) ç”¨ã®ãƒãƒƒãƒ•ã‚¡ã®ã‚µã‚¤ã‚º 
+ *  PORT_NO              ãƒ‡ãƒ•ã‚©ãƒ«ãƒˆã®ä»®æƒ³ãƒãƒ–ã®ãƒãƒ¼ãƒˆç•ªå·
+ *  SOCKBUFSIZE          recv(), send() ç”¨ã®ãƒãƒƒãƒ•ã‚¡ã®ã‚µã‚¤ã‚º                
+ *  ERR_MSG_MAX          syslog ã‚„ã€STDERR ã«å‡ºåŠ›ã™ã‚‹ãƒ¡ãƒƒã‚»ãƒ¼ã‚¸ã®ã‚µã‚¤ã‚º   
+ *  SENDBUF_THRESHOLD    é€ä¿¡ä¸€æ™‚ãƒãƒƒãƒ•ã‚¡ã®ãƒ‡ãƒ¼ã‚¿ã‚’é€ä¿¡ã™ã‚‹ã—ãã„å€¤ã€‚
+ *  SELECT_TIMEOUT       select() ç”¨ã®ã‚¿ã‚¤ãƒ ã‚¢ã‚¦ãƒˆï¼ˆSolaris ç”¨)
+ *  HTTP_STAT_OK         HTTP ã®ã‚¹ãƒ†ãƒ¼ã‚¿ã‚¹ã‚³ãƒ¼ãƒ‰ OK
+ *  MAXHOSTNAME          ãƒ›ã‚¹ãƒˆåï¼ˆHUBã‚„Proxyï¼‰ã®æœ€å¤§é•· 
+ *  GETMSG_MAXWAIT       getmsg(9F) ã®ã‚¿ã‚¤ãƒ ã‚¢ã‚¦ãƒˆå€¤ï¼ˆSolaris ç”¨)
  ********************************************************/
 #define  CONNECT_REQ_SIZE         200    
 #define  CONNECT_REQ_TIMEOUT      10  
@@ -74,48 +74,48 @@
 #define  STE_MAX_DEVICE_NAME      30
 
 /*
- * ‰¼‘z NIC ƒf[ƒ‚ƒ“ sted ‚ÆA‰¼‘zƒnƒuƒf[ƒ‚ƒ“ stehub ‚ª’ÊM‚ğ
- * s‚¤ÛA‘—óM‚·‚é Ethernet ƒtƒŒ[ƒ€‚Ìƒf[ƒ^‚É•t‰Á‚³‚ê‚éƒwƒbƒ_B
+ * ä»®æƒ³ NIC ãƒ‡ãƒ¼ãƒ¢ãƒ³ sted ã¨ã€ä»®æƒ³ãƒãƒ–ãƒ‡ãƒ¼ãƒ¢ãƒ³ stehub ãŒé€šä¿¡ã‚’
+ * è¡Œã†éš›ã€é€å—ä¿¡ã™ã‚‹ Ethernet ãƒ•ãƒ¬ãƒ¼ãƒ ã®ãƒ‡ãƒ¼ã‚¿ã«ä»˜åŠ ã•ã‚Œã‚‹ãƒ˜ãƒƒãƒ€ã€‚
  */
 typedef struct stehead 
 {
-    int           len;    /* ƒpƒfƒBƒ“ƒOŒã‚Ìƒf[ƒ^ƒTƒCƒY */
-    int           orglen; /* ƒpƒfƒBƒ“ƒO‚·‚é‘O‚ÌƒTƒCƒYB*/
+    int           len;    /* ãƒ‘ãƒ‡ã‚£ãƒ³ã‚°å¾Œã®ãƒ‡ãƒ¼ã‚¿ã‚µã‚¤ã‚º */
+    int           orglen; /* ãƒ‘ãƒ‡ã‚£ãƒ³ã‚°ã™ã‚‹å‰ã®ã‚µã‚¤ã‚ºã€‚*/
 } stehead_t;
 
 /*
- * sted ƒf[ƒ‚ƒ“‚ªg‚¤ sted ‚ÌŠÇ——p\‘¢‘Ì
- * HUB ‚Æ‚Ì’ÊM‚Ìî•ñ‚âA‰¼‘z NIC ƒhƒ‰ƒCƒo‚Ìî•ñ‚ğ‚Á‚Ä‚¢‚éB
+ * sted ãƒ‡ãƒ¼ãƒ¢ãƒ³ãŒä½¿ã† sted ã®ç®¡ç†ç”¨æ§‹é€ ä½“
+ * HUB ã¨ã®é€šä¿¡ã®æƒ…å ±ã‚„ã€ä»®æƒ³ NIC ãƒ‰ãƒ©ã‚¤ãƒã®æƒ…å ±ã‚’æŒã£ã¦ã„ã‚‹ã€‚
  */
 typedef struct sted_stat
 {
-    /* Socket ’ÊM—p—pî•ñ */
-    int           sock_fd;                 /* HUB ‚Ü‚½‚Í Proxy ‚Æ‚Ì’ÊM‚É‚Â‚©‚¤ FD  */
-    char          hub_name[MAXHOSTNAME];   /* ‰¼‘zƒnƒu–¼ */
-    int           hub_port;                /* ‰¼‘zƒnƒu‚Ìƒ|[ƒg”Ô† */
-    char          proxy_name[MAXHOSTNAME]; /* ƒvƒƒLƒV[ƒT[ƒo–¼   */ 
-    int           proxy_port;              /* ƒvƒƒLƒV[ƒT[ƒo‚Ìƒ|[ƒg”Ô†  */
-    int           sendbuflen;              /* ‘—Mƒoƒbƒtƒ@‚Ö‚ÌŒ»İ‚Ì‘‚«‚İƒTƒCƒY  */
-    int           datalen;                 /* ƒpƒbƒh‚ğŠÜ‚Ş Ethernet ƒtƒŒ[ƒ€‚ÌƒTƒCƒY*/
-    int           orgdatalen;              /* Œ³‚Ì Ethernet ƒtƒŒ[ƒ€‚ÌƒTƒCƒY        */
-    int           dataleft;                /* –¢óM‚Ì Ethernet ƒtƒŒ[ƒ€‚ÌƒTƒCƒY    */
-    stehead_t     dummyhead;               /* óM“r’†‚Ì stehead ‚ÌƒRƒs[           */
-    int           dummyheadlen;            /* óMÏ‚İ‚Ì stehead ‚ÌƒTƒCƒY           */
-    int           use_syslog;              /* ƒƒbƒZ[ƒW‚ğ STDERR ‚Å‚È‚­Asyslog ‚Éo—Í‚·‚é */
-    unsigned char sendbuf[SOCKBUFSIZE];    /* Socket ‘—M—pƒoƒbƒtƒ@ */
-    unsigned char recvbuf[SOCKBUFSIZE];    /* Socket óM—pƒoƒbƒtƒ@ */
-    /* ste ƒhƒ‰ƒCƒo—pî•ñ */
+    /* Socket é€šä¿¡ç”¨ç”¨æƒ…å ± */
+    int           sock_fd;                 /* HUB ã¾ãŸã¯ Proxy ã¨ã®é€šä¿¡ã«ã¤ã‹ã† FD  */
+    char          hub_name[MAXHOSTNAME];   /* ä»®æƒ³ãƒãƒ–å */
+    int           hub_port;                /* ä»®æƒ³ãƒãƒ–ã®ãƒãƒ¼ãƒˆç•ªå· */
+    char          proxy_name[MAXHOSTNAME]; /* ãƒ—ãƒ­ã‚­ã‚·ãƒ¼ã‚µãƒ¼ãƒå   */ 
+    int           proxy_port;              /* ãƒ—ãƒ­ã‚­ã‚·ãƒ¼ã‚µãƒ¼ãƒã®ãƒãƒ¼ãƒˆç•ªå·  */
+    int           sendbuflen;              /* é€ä¿¡ãƒãƒƒãƒ•ã‚¡ã¸ã®ç¾åœ¨ã®æ›¸ãè¾¼ã¿ã‚µã‚¤ã‚º  */
+    int           datalen;                 /* ãƒ‘ãƒƒãƒ‰ã‚’å«ã‚€ Ethernet ãƒ•ãƒ¬ãƒ¼ãƒ ã®ã‚µã‚¤ã‚º*/
+    int           orgdatalen;              /* å…ƒã® Ethernet ãƒ•ãƒ¬ãƒ¼ãƒ ã®ã‚µã‚¤ã‚º        */
+    int           dataleft;                /* æœªå—ä¿¡ã® Ethernet ãƒ•ãƒ¬ãƒ¼ãƒ ã®ã‚µã‚¤ã‚º    */
+    stehead_t     dummyhead;               /* å—ä¿¡é€”ä¸­ã® stehead ã®ã‚³ãƒ”ãƒ¼           */
+    int           dummyheadlen;            /* å—ä¿¡æ¸ˆã¿ã® stehead ã®ã‚µã‚¤ã‚º           */
+    int           use_syslog;              /* ãƒ¡ãƒƒã‚»ãƒ¼ã‚¸ã‚’ STDERR ã§ãªãã€syslog ã«å‡ºåŠ›ã™ã‚‹ */
+    unsigned char sendbuf[SOCKBUFSIZE];    /* Socket é€ä¿¡ç”¨ãƒãƒƒãƒ•ã‚¡ */
+    unsigned char recvbuf[SOCKBUFSIZE];    /* Socket å—ä¿¡ç”¨ãƒãƒƒãƒ•ã‚¡ */
+    /* ste ãƒ‰ãƒ©ã‚¤ãƒç”¨æƒ…å ± */
 #ifdef STE_WINDOWS
-    HANDLE        ste_handle;              /* ‰¼‘z NIC ƒfƒoƒCƒX‚ğƒI[ƒvƒ“‚µ‚½ƒtƒ@ƒCƒ‹ƒnƒ“ƒhƒ‹ */
+    HANDLE        ste_handle;              /* ä»®æƒ³ NIC ãƒ‡ãƒã‚¤ã‚¹ã‚’ã‚ªãƒ¼ãƒ—ãƒ³ã—ãŸãƒ•ã‚¡ã‚¤ãƒ«ãƒãƒ³ãƒ‰ãƒ« */
 #else    
-    int           ste_fd;                  /* ‰¼‘z NIC ƒfƒoƒCƒX‚ğƒI[ƒvƒ“‚µ‚½ FD */
+    int           ste_fd;                  /* ä»®æƒ³ NIC ãƒ‡ãƒã‚¤ã‚¹ã‚’ã‚ªãƒ¼ãƒ—ãƒ³ã—ãŸ FD */
 #endif    
-    unsigned char wdatabuf[STRBUFSIZE]; /* ƒhƒ‰ƒCƒo‚Ö‚Ì‘‚«‚İ—pƒoƒbƒtƒ@  */
-    unsigned char rdatabuf[STRBUFSIZE]; /* ƒhƒ‰ƒCƒo‚©‚ç‚Ì“Ç‚İ‚İ—pƒoƒbƒtƒ@*/    
+    unsigned char wdatabuf[STRBUFSIZE]; /* ãƒ‰ãƒ©ã‚¤ãƒã¸ã®æ›¸ãè¾¼ã¿ç”¨ãƒãƒƒãƒ•ã‚¡  */
+    unsigned char rdatabuf[STRBUFSIZE]; /* ãƒ‰ãƒ©ã‚¤ãƒã‹ã‚‰ã®èª­ã¿è¾¼ã¿ç”¨ãƒãƒƒãƒ•ã‚¡*/    
 } stedstat_t;
 
 /*
- * sted ‚Ì“à•”ŠÖ”‚Ìƒvƒƒgƒ^ƒCƒv
+ * sted ã®å†…éƒ¨é–¢æ•°ã®ãƒ—ãƒ­ãƒˆã‚¿ã‚¤ãƒ—
  */
 extern void     print_err(int, char *, ...);
 extern int      open_socket(stedstat_t *, char *, char *);

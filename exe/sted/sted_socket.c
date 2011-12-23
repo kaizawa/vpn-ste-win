@@ -1,4 +1,4 @@
-/*
+﻿/*
  * Copyright (C) 2004-2010 Kazuyoshi Aizawa. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
