@@ -141,11 +141,11 @@ HKR, Ndi\Interfaces,     LowerRange,      0, "ethernet"
 [Ste.NTx86.CopyFiles]
 ;destination-file, source-file, temporary-file, flag
 ;----------------------------------------------------------------------
-Ste.sys, , ,2  ;; 2 は (COPYFLG_NOSKIP) 
+ste.sys, , ,2  ;; 2 は (COPYFLG_NOSKIP) 
 
 ;;For x64
 [Ste.NTamd64.CopyFiles]
-Ste.sys, , ,2  
+ste.sys, , ,2  
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;
