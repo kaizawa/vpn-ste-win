@@ -25,47 +25,58 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; STE.INF
 ;;
-;; ‰¼‘z NIC ƒhƒ‰ƒCƒo
+;; ä»®æƒ³ NIC ãƒ‰ãƒ©ã‚¤ãƒ
 ;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;; Version ƒZƒNƒVƒ‡ƒ“
+;; Version ã‚»ã‚¯ã‚·ãƒ§ãƒ³
 ;;
-;;   Class, ClassGuid ‚ÍƒfƒoƒCƒX‚Ìí—Ş‚É‚æ‚Á‚ÄŒˆ‚Ü‚Á‚Ä‚¢‚é
-;;   NIC ‚È‚çˆÈ‰º‚Å‚æ‚¢‚æ‚¤‚¾B
+;;   Class, ClassGuid ã¯ãƒ‡ãƒã‚¤ã‚¹ã®ç¨®é¡ã«ã‚ˆã£ã¦æ±ºã¾ã£ã¦ã„ã‚‹
+;;   NIC ãªã‚‰ä»¥ä¸‹ã§ã‚ˆã„ã‚ˆã†ã ã€‚
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 [version]
-Class     = Net                                    ;;; NIC ‚Å‚ ‚ê‚Î‚±‚êB
-ClassGUID = {4d36e972-e325-11ce-bfc1-08002be10318} ;;; Net Class ‚Ìê‡‚Ì ClassGUIDB
-Signature = "$Windows NT$"                         ;;; NT ƒx[ƒX‚Ì OS ‚Ìê‡‚Í•K{
-Provider  = %Admin2%                               ;;; ”z•zŒ³
-DriverVer = 05/09/2005,1.0.0.1                     ;;; ƒo[ƒWƒ‡ƒ“
+Class     = Net                                    ;;; NIC ã§ã‚ã‚Œã°ã“ã‚Œã€‚
+ClassGUID = {4d36e972-e325-11ce-bfc1-08002be10318} ;;; Net Class ã®å ´åˆã® ClassGUIDã€‚
+Signature = "$Windows NT$"                         ;;; NT ãƒ™ãƒ¼ã‚¹ã® OS ã®å ´åˆã¯å¿…é ˆ
+Provider  = %Admin2%                               ;;; é…å¸ƒå…ƒ
+DriverVer = 05/09/2005,1.0.0.1                     ;;; ãƒãƒ¼ã‚¸ãƒ§ãƒ³
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;
-;; Manufucture ƒZƒNƒVƒ‡ƒ“
+;; Manufucture ã‚»ã‚¯ã‚·ãƒ§ãƒ³
 ;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 [Manufacturer] 
 ;%strkey%=models-section-name 
-%Admin2% = Admin2
+%Admin2% = Admin2, NTx86.6.0, NTamd64.6.0
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;
-;; Model ƒZƒNƒVƒ‡ƒ“
+;; Model ã‚»ã‚¯ã‚·ãƒ§ãƒ³
 ;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+;; Windows 2000, XP ç”¨
 [Admin2] 
 ;                    Install
 ; DisplayName        Section       DeviceID
 ;-----------------  --------- ------------------------------------------
-%Ste.DeviceDesc%  = Ste_Inst, root\Ste ; Root enumerated 
-%Ste.DeviceDesc%  = Ste_Inst, {b85b7c50-6a01-11d2-b841-00c04fad5171}\Ste ; Toaster Bus enumerated 
+%Ste.DeviceDesc%  = NetSte.NTx86.ndi, root\Ste ; Root enumerated 
+%Ste.DeviceDesc%  = NetSte.NTx86.ndi, {b85b7c50-6a01-11d2-b841-00c04fad5171}\Ste ; Toaster Bus enumerated 
+
+;; Vista ä»¥é™ç”¨
+[Admin2.NTx86.6.0]
+%Ste.DeviceDesc%  = NetSte.NTx86.ndi, root\Ste ; Root enumerated 
+%Ste.DeviceDesc%  = NetSte.NTx86.ndi, {b85b7c50-6a01-11d2-b841-00c04fad5171}\Ste ; Toaster Bus enumerated 
+
+[Admin2.NTamd64.6.0]
+%Ste.DeviceDesc%  = NetSte.NTx86.ndi64, root\Ste ; Root enumerated 
+%Ste.DeviceDesc%  = NetSte.NTx86.ndi64, {b85b7c50-6a01-11d2-b841-00c04fad5171}\Ste ; Toaster Bus enumerated 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;
-;; ControlFlags ƒZƒNƒVƒ‡ƒ“
+;; ControlFlags ã‚»ã‚¯ã‚·ãƒ§ãƒ³
 ;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 [ControlFlags]
@@ -73,32 +84,46 @@ ExcludeFromSelect = {b85b7c50-6a01-11d2-b841-00c04fad5171}\Ste
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;
-;; DDInstall ƒZƒNƒVƒ‡ƒ“
+;; DDInstall ã‚»ã‚¯ã‚·ãƒ§ãƒ³
 ;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-[Ste_Inst]
-Characteristics =  0x1     ; 0x1 ‚Í NCF_VIRTUAL(‰¼‘zƒAƒ_ƒvƒ^)
+;; For x86
+[NetSte.NTx86.ndi]
+Characteristics =  0x1     ; 0x1 ã¯ NCF_VIRTUAL(ä»®æƒ³ã‚¢ãƒ€ãƒ—ã‚¿)
 ; Directive        Section Name                
 ;--------------   --------------
 AddReg          =  Ste.Reg       ;add-registry-section
-CopyFiles       =  Ste.CopyFiles ;file-list-section
+CopyFiles       =  Ste.NTx86.CopyFiles ;file-list-section
+
+;; For x64
+[NetSte.NTamd64.ndi]
+Characteristics =  0x1     ; 0x1 ã¯ NCF_VIRTUAL(ä»®æƒ³ã‚¢ãƒ€ãƒ—ã‚¿)
+; Directive        Section Name                
+;--------------   --------------
+AddReg          =  Ste.Reg       ;add-registry-section
+CopyFiles       =  Ste.NTamd64.CopyFiles ;file-list-section
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;
-;; DDInstall.Services ƒZƒNƒVƒ‡ƒ“
+;; DDInstall.Services ã‚»ã‚¯ã‚·ãƒ§ãƒ³
 ;;
-;;   DDInstall ƒZƒNƒVƒ‡ƒ“‚ÌŠg’£
+;;   DDInstall ã‚»ã‚¯ã‚·ãƒ§ãƒ³ã®æ‹¡å¼µ
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-[Ste_Inst.Services]
+;; for x86
+[NetSte.NTx86.ndi.Services]
 ;                 ServicName Flag   Service-Install-Section  Event-Log-Install-Section
-;---------------- ---------- -----  -----------------------  -----------------------
-AddService      =  Ste,       2,     Ste.Service,             Ste.EventLog
+;---------------- -----  -----------------------  -----------------------
+AddService      =  Ste,       2,     Ste.NTx86.Service,             Ste.EventLog
+
+;; for x64
+[NetSte.NTamd64.ndi.Services]
+AddService      =  Ste,       2,     Ste.NTamd64.Service,             Ste.EventLog
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;
-;; Add-Registry ƒZƒNƒVƒ‡ƒ“
+;; Add-Registry ã‚»ã‚¯ã‚·ãƒ§ãƒ³
 ;;
-;; SYSTEM\ControlSet001\Control\Class\{..—ª..}\00?\ “™‚É‘‚©‚ê‚é“à—e
+;; SYSTEM\ControlSet001\Control\Class\{..ç•¥..}\00?\ ç­‰ã«æ›¸ã‹ã‚Œã‚‹å†…å®¹
 ;; 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 [Ste.Reg]
@@ -109,22 +134,28 @@ HKR, Ndi\Interfaces,     LowerRange,      0, "ethernet"
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;
-;; FileList ƒZƒNƒVƒ‡ƒ“
+;; FileList ã‚»ã‚¯ã‚·ãƒ§ãƒ³
 ;; 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-[Ste.CopyFiles]
+;;For x86
+[Ste.NTx86.CopyFiles]
 ;destination-file, source-file, temporary-file, flag
 ;----------------------------------------------------------------------
-Ste.sys, , ,2  ; 2 ‚Í (COPYFLG_NOSKIP) 
+Ste.sys, , ,2  ;; 2 ã¯ (COPYFLG_NOSKIP) 
+
+;;For x64
+[Ste.NTamd64.CopyFiles]
+Ste.sys, , ,2  
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;
-;; Service-Install ƒZƒNƒVƒ‡ƒ“
+;; Service-Install ã‚»ã‚¯ã‚·ãƒ§ãƒ³
 ;;
-;;  %12% ‚Í’è‹`Ï‚İ‚Ìpath‚Å,%windir%\system32\drivers ‚ğŒ»‚·
+;;  %12% ã¯å®šç¾©æ¸ˆã¿ã®pathã§,%windir%\system32\drivers ã‚’ç¾ã™
 ;; 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-[Ste.Service]
+;; For x86
+[Ste.NTx86.Service]
 DisplayName     = %Ste.Service.DispName%
 ServiceType     = 1  ; SERVICE_KERNEL_DRIVER
 StartType       = 3  ; SERVICE_DEMAND_START
@@ -133,9 +164,19 @@ ServiceBinary   = %12%\ste.sys
 LoadOrderGroup  = NDIS
 AddReg          = TextModeFlags.Reg ;add-registry-section
 
+;; For x64
+[Ste.NTamd64.Service]
+DisplayName     = %Ste.Service.DispName%
+ServiceType     = 1  ; SERVICE_KERNEL_DRIVER
+StartType       = 3  ; SERVICE_DEMAND_START
+ErrorControl    = 1  ; SERVICE_ERROR_NORMAL
+ServiceBinary   = %12%\ste.sys ;; currently, using same file name as x86.
+LoadOrderGroup  = NDIS
+AddReg          = TextModeFlags.Reg ;add-registry-section
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;
-;; Event-Log-Install ƒZƒNƒVƒ‡ƒ“
+;; Event-Log-Install ã‚»ã‚¯ã‚·ãƒ§ãƒ³
 ;; 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 [Ste.EventLog]
@@ -143,7 +184,7 @@ AddReg = Ste.AddEventLog.Reg ;add-registry-section
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;
-;; Add-Registry ƒZƒNƒVƒ‡ƒ“
+;; Add-Registry ã‚»ã‚¯ã‚·ãƒ§ãƒ³
 ;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 [Ste.AddEventLog.Reg]
@@ -152,7 +193,7 @@ HKR,,TypesSupported,   0x00010001, 7
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;
-;; Add-Registry ƒZƒNƒVƒ‡ƒ“
+;; Add-Registry ã‚»ã‚¯ã‚·ãƒ§ãƒ³
 ;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 [TextModeFlags.Reg]
@@ -160,9 +201,9 @@ HKR,,TextModeFlags, 0x00010001, 0x0001
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;
-;; SourceDisksNames ƒZƒNƒVƒ‡ƒ“
+;; SourceDisksNames ã‚»ã‚¯ã‚·ãƒ§ãƒ³
 ;;
-;;   ƒCƒ“ƒXƒg[ƒ‹ƒfƒBƒXƒN‚Ìw’è
+;;   ã‚¤ãƒ³ã‚¹ãƒˆãƒ¼ãƒ«ãƒ‡ã‚£ã‚¹ã‚¯ã®æŒ‡å®š
 ;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 [SourceDisksNames]
@@ -171,10 +212,10 @@ HKR,,TextModeFlags, 0x00010001, 0x0001
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;
-;; SourceDisksFiles ƒZƒNƒVƒ‡ƒ“
+;; SourceDisksFiles ã‚»ã‚¯ã‚·ãƒ§ãƒ³
 ;;
-;;   ƒRƒs[‚·‚éƒhƒ‰ƒCƒo[‚Ìƒtƒ@ƒCƒ‹–¼‚ÆA‚»‚Ìƒtƒ@ƒCƒ‹‚ª‚ ‚é
-;;   ƒfƒBƒXƒNID ‚ÆƒfƒBƒŒƒNƒgƒŠB
+;;   ã‚³ãƒ”ãƒ¼ã™ã‚‹ãƒ‰ãƒ©ã‚¤ãƒãƒ¼ã®ãƒ•ã‚¡ã‚¤ãƒ«åã¨ã€ãã®ãƒ•ã‚¡ã‚¤ãƒ«ãŒã‚ã‚‹
+;;   ãƒ‡ã‚£ã‚¹ã‚¯ID ã¨ãƒ‡ã‚£ãƒ¬ã‚¯ãƒˆãƒªã€‚
 ;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 [SourceDisksFiles]
@@ -183,17 +224,19 @@ ste.sys  = 1,\i386
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;
-;; DestinationDirs ƒZƒNƒVƒ‡ƒ“
+;; DestinationDirs ã‚»ã‚¯ã‚·ãƒ§ãƒ³
 ;; 
-;;   ƒhƒ‰ƒCƒo[‚ÌƒRƒs[æ
+;;   ãƒ‰ãƒ©ã‚¤ãƒãƒ¼ã®ã‚³ãƒ”ãƒ¼å…ˆ
 ;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 [DestinationDirs]
-Ste.CopyFiles = 12 ;;; \winnt\system32\drivers\
+DefaultDestDir = 12  ;; \winnt\system32\drivers\
+Ste.NTx86.CopyFiles = 12
+Ste.NTamd64.CopyFiles = 12
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;
-;; Strings ƒZƒNƒVƒ‡ƒ“
+;; Strings ã‚»ã‚¯ã‚·ãƒ§ãƒ³
 ;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 [Strings]
