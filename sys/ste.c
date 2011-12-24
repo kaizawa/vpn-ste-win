@@ -378,11 +378,12 @@ SteMiniportQueryInformation(
     ULONG           ulTemp;                 // 整数値の情報のための領域（マクロ内で利用）
     CHAR            VendorName[] = STE_VENDOR_NAME; // ベンダー名
 
-    DEBUG_PRINT0(3, "SteMiniportQueryInformation called\n");    
+    // あまりに冗長なので、必要なデバッグレベルを上げる    
+    DEBUG_PRINT0(4, "SteMiniportQueryInformation called\n");    
 
     Adapter = (STE_ADAPTER *)MiniportAdapterContext;
 
-    DEBUG_PRINT1(3, "SteMiniportQueryInformation: Oid = 0x%x\n", Oid);        
+    DEBUG_PRINT1(4, "SteMiniportQueryInformation: Oid = 0x%x\n", Oid);        
 
     switch(Oid) {    
         // 一般的な特性 （22個)
@@ -937,7 +938,7 @@ SteMiniportSendPackets(
          * 仮想 NIC デーモンにイベント通知
          */
         KeSetEvent(Adapter->EventObject, 0, FALSE);
-        DEBUG_PRINT0(3, "SteMiniportSendPackets: KeSetEvent Called\n");
+        DEBUG_PRINT0(3, "SteMiniportSendPackets: Notified to Daemon\n");
     }
     return;
 }
