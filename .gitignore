@@ -14,3 +14,4 @@ buildchk_wxp_x86.wrn
 exe/sted/objchk_wxp_x86/
 exe/stehub/objchk_wxp_x86/
 sys/objchk_wxp_x86/
+*.err
