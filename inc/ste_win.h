@@ -28,11 +28,18 @@
 
 #include <ndis.h>
 
-#define      DebugLevel               3       // デバッグレベル
-                                              //  1: エラーのみ
-                                              //  2: 警告レベル
-                                              //  3: 冗長出力
-                                              //  4: さらに冗長出力
+
+/*
+ * デバッグレベル    
+ *  1: エラーのみ    
+ *  2: 警告レベル    
+ *  3: 冗長出力      
+ *  4: さらに冗長出力
+ */
+#ifndef DEBUG_LEVEL
+DEBUG_LEVE=3
+#endif
+#define      DebugLevel               DEBUG_LEVEL
 
 #define      ETHERMAX                 1514    // ヘッダ込みの Ethernet フレームの最大サイズ 
 #define      ETHERMTU                 1500    // ヘッダ無しの Ethernet フレームの最大サイズ 
