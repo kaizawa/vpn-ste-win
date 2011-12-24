@@ -532,9 +532,9 @@ SteDispatchRead(
     if( DebugLevel >= 3) {
         DEBUG_PRINT0(3, "SteDispatchRead: ");
         if ( Irp->Flags & DO_BUFFERED_IO){
-            DEBUG_PRINT1(3, "Irp->Flags(0x%x)== DO_BUFFERED_IO\n",Irp->Flags);
+            DEBUG_PRINT1(3, "Irp->Flags(0x%x)==DO_BUFFERED_IO\n",Irp->Flags);
         } else if ( Irp->Flags & DO_DIRECT_IO){
-            DEBUG_PRINT1(3, "Irp->Flags(0x%x)== DO_DIRECT_IO\n",Irp->Flags);
+            DEBUG_PRINT1(3, "Irp->Flags(0x%x)==DO_DIRECT_IO\n",Irp->Flags);
         } else {
             DEBUG_PRINT1(3, "Irp->Flags(0x%x)\n",Irp->Flags);
         }
