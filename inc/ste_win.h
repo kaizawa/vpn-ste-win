@@ -37,7 +37,7 @@
  *  4: さらに冗長出力
  */
 #ifndef DEBUG_LEVEL
-DEBUG_LEVE=3
+#define      DEBUG_LEVEL              3
 #endif
 #define      DebugLevel               DEBUG_LEVEL
 
