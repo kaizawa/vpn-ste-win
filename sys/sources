@@ -38,7 +38,7 @@ C_DEFINES=$(C_DEFINES) -D_KERNEL -DSTE_WINDOWS -I..\inc
 
 SOURCES = ste.c ste_local.c
 
-INCLUDE = $(INCLUDE);..\inc\
+#INCLUDE = $(INCLUDE);..\inc\
 
 ## Ndis 用の定義。 NDIS の Version は 5.0 とする
 C_DEFINES=$(C_DEFINES) -DNDIS50_MINIPORT=1
