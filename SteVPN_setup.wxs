@@ -19,8 +19,7 @@
 
     <Directory Id='TARGETDIR' Name='SourceDir'>
      <Directory Id='ProgramFilesFolder' Name='PFiles'>
-        <Directory Id='SteVPN' Name='SteVPN'>
-          <Directory Id='INSTALLDIR' Name='bin'>
+          <Directory Id='INSTALLDIR' Name='SteVPN'>
 
             <Component Id='StedExecutable'
                        Guid='5D4F7EB0-F852-4036-90B3-9013263AE1A7'>
@@ -50,7 +49,6 @@
                 </Component>
             </Directory>
 
-          </Directory>
         </Directory>
       </Directory>
 
