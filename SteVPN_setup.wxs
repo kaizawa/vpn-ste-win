@@ -1,0 +1,61 @@
+<?xml version='1.0' encoding='utf-8'?>
+<Wix xmlns='http://schemas.microsoft.com/wix/2006/wi'
+   xmlns:difx='http://schemas.microsoft.com/wix/DifxAppExtension'>
+
+  <Product Name='SteVPN 1.1.0'
+           Id='6B3B862C-AA93-4bcc-A23E-6363D80E28CE'
+           UpgradeCode='495F8311-6C65-4515-967C-E73545CE0818'
+           Language='1041' Codepage='932'
+           Version='1.1.0' Manufacturer='Admin2'>
+
+    <Package Id='*' Keywords='Installer'
+             Description="SteVPN 1.1.0 Installer"
+             Comments='SteVPN Software'
+             Manufacturer='Admin2' InstallerVersion='100'
+             Languages='1041' Compressed='yes' SummaryCodepage='932' />
+
+    <Media Id='1' Cabinet='stevpn.cab' EmbedCab='yes' DiskPrompt='CD-ROM 1' />
+    <Property Id='DiskPrompt' Value="SteVPN 1.1.0 Installer [1]" />
+
+    <Directory Id='TARGETDIR' Name='SourceDir'>
+     <Directory Id='ProgramFilesFolder' Name='PFiles'>
+          <Directory Id='INSTALLDIR' Name='SteVPN'>
+
+            <Component Id='StedExecutable'
+                       Guid='5D4F7EB0-F852-4036-90B3-9013263AE1A7'>
+              <File Id='StedEXE'
+                    Name='sted.exe' DiskId='1'
+                    Source='exe\sted\i386\sted.exe' KeyPath='yes'>
+              </File>
+            </Component>
+
+            <Component Id='StehubExecutable'
+                       Guid='C9259EC1-A0F0-48d6-9AB2-3E1E4608E9D7'>
+              <File Id='StehubEXE'
+                    Name='stehub.exe' DiskId='1'
+                    Source='exe\stehub\i386\stehub.exe' KeyPath='yes'>
+              </File>
+            </Component>
+
+            <Directory Id='SteDriverDir' Name='driver'>
+                <Component Id='SteDriver' Guid='8F99267E-CD80-4255-A64D-AE61494F21D3'>
+                  <File Id='DirFilterSYS' Name='ste.sys' DiskId='1' Source='sys\i386\ste.sys' KeyPath='yes' />
+                  <File Id='DirFilterINF' Name='ste.inf' DiskId='1' Source='sys\netste.inf' />
+                  <difx:Driver Legacy='yes' />
+                </Component>
+            </Directory>
+
+        </Directory>
+      </Directory>
+
+    </Directory>
+
+    <Feature Id='Complete' Level='1'>
+      <ComponentRef Id='StedExecutable' />
+      <ComponentRef Id='StehubExecutable' />
+      <ComponentRef Id='SteDriver' />
+    </Feature>
+    <UIRef Id="WixUI_Minimal" />
+
+  </Product>
+</Wix>
