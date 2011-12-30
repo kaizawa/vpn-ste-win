@@ -24,7 +24,7 @@
  * SUCH DAMAGE.
  */
 /**********************************************************
- * 2005/03/27
+ * 2011/12/30
  *
  * stehub.c
  *
@@ -33,7 +33,14 @@
  *
  *  gcc stehub.c -o stehub -lsocket -lnsl
  *
- * Usage: stehub [ -p port] [-d level]
+ * Usage: stehub [ -I | -U ] [ -p port] [-d level]
+ *
+ *       -I : サービスとして登録。
+ *       -U : 登録解除
+ *
+ *    以下の引数は、コンソールコマンドして実行させる時の引数、もしくは
+ *    はコントロールパネルの「サービス」にて「開始パラメータ」として
+ *    渡せる引数です。
  *
  *     引数:
  *        -p port  仮想 NIC デーモンからの接続を待ち受けるポート番号を指定する。
@@ -63,29 +70,23 @@
  *  2005/03/27
  *   o Windows 上でも利用可能なように修正した（まだ未使用）
  *   o recv() のエラー処理が間違っていたので修正した。
- * 
+ *  2011/12/30
+ *   o Service として登録できるようにした。
  ***********************************************************/
 
 #ifdef STE_WINDOWS
-#include <winsock2.h>   /* for windows */
-#include <Windows.h>    /* for windows */
-#include <time.h>       /* for windows */
-#include <winioctl.h>   /* for windows */
-#include <setupapi.h>   /* for windows */
-#include <dbt.h>        /* for windows */
-#include <direct.h>
-#include "getopt_win.h"
+#include "stehub_win.h"
 #else 
-#define  WINAPIV        /* for solaris */
-#include <strings.h>    /* for solaris */
-#include <unistd.h>     /* for solaris */
-#include <sys/socket.h> /* for solaris */
-#include <netinet/in.h> /* for solaris */
-#include <netdb.h>      /* for solaris */
-#include <syslog.h>     /* for solaris */
-#include <libgen.h>     /* for solaris */
-#include <arpa/inet.h>  /* for solaris */
-#include <sys/time.h>   /* for solaris */
+#define  WINAPIV        
+#include <strings.h>    
+#include <unistd.h>     
+#include <sys/socket.h> 
+#include <netinet/in.h> 
+#include <netdb.h>      
+#include <syslog.h>     
+#include <libgen.h>     
+#include <arpa/inet.h>  
+#include <sys/time.h>   
 #endif
 #include <stdio.h>
 #include <stdlib.h>
@@ -104,12 +105,6 @@
 #undef  FD_SETSIZE
 #endif
 #define FD_SETSIZE     1024
-
-
-#ifdef  STE_WINDOWS
-HANDLE  hStedLog;          /* デバッグログ用のファイルハンドル */
-#define STEHUB_LOG_FILE   "C:\\stehub.log" /* ログファイル */
-#endif
 
 struct conn_stat {
     struct conn_stat *next;
@@ -134,8 +129,12 @@ extern int    optopt;
 extern int    opterr;
 extern int    optreset;
 
-int WINAPIV
+void WINAPI
+#ifdef STE_WINDOWS
+stehub_svc_main(DWORD argc, LPTSTR *argv)
+#else
 main(int argc,char *argv[])
+#endif
 {
     int                 listener_fd, new_fd;
     int                 remotelen;
@@ -148,7 +147,9 @@ main(int argc,char *argv[])
     u_long              param = 0; /* FIONBIO コマンドのパラメータ Non-Blocking ON*/
     int                 nRtn;
     WSADATA             wsaData;
-    nRtn = WSAStartup(MAKEWORD(1, 1), &wsaData);        
+    stehubstat_t        stehubstat[1];
+    
+    nRtn = WSAStartup(MAKEWORD(1, 1), &wsaData);
 #endif
 
     while ((c = getopt(argc, argv, "p:d:")) != EOF){
@@ -194,7 +195,6 @@ main(int argc,char *argv[])
         exit(1);
     }
 
-
     /*
      * accept() でブロックされるのを防ぐため、non-blocking mode に設定
      */
@@ -230,6 +230,38 @@ main(int argc,char *argv[])
                           FILE_ATTRIBUTE_NORMAL,
                           NULL);
     SetFilePointer(hStedLog, 0, NULL, FILE_END);
+
+    if(isTerminal == FALSE){
+        /* サービスとして呼ばれている（コマンドプロンプトから呼ばれていない）場合 */
+        stehubServiceStatus.dwServiceType = SERVICE_WIN32;
+        stehubServiceStatus.dwCurrentState = SERVICE_START_PENDING;
+        stehubServiceStatus.dwControlsAccepted = SERVICE_ACCEPT_STOP;
+        stehubServiceStatus.dwWin32ExitCode = 0;
+        stehubServiceStatus.dwServiceSpecificExitCode = 0;
+        stehubServiceStatus.dwCheckPoint = 0;
+        stehubServiceStatus.dwWaitHint = 0;
+        InterfaceGuid = GUID_NDIS_LAN_CLASS;
+    
+        /* サービスコントロールハンドラーを登録 */
+        stehubServiceStatusHandle = RegisterServiceCtrlHandlerEx(
+            "Stehub",                //LPCTSTR
+            stehub_svc_ctrl_handler, //LPHANDLER_FUNCTION_EX
+            (LPVOID)stehubstat       //LPVOID 
+            );
+
+        if (stehubServiceStatusHandle == (SERVICE_STATUS_HANDLE)0){
+            return;
+        }
+    
+        stehubServiceStatus.dwCurrentState = SERVICE_RUNNING;
+        stehubServiceStatus.dwCheckPoint = 0;
+        stehubServiceStatus.dwWaitHint = 0;
+    
+        if (!SetServiceStatus (stehubServiceStatusHandle, &stehubServiceStatus)){
+            // SetServiceStatus が失敗した場合の処理・・        
+            print_err(LOG_ERR, "SetServiceStatus Failed\n");
+        }
+    }
 #else
      openlog(basename(argv[0]),LOG_PID,LOG_USER);
 #endif
@@ -381,6 +413,191 @@ main(int argc,char *argv[])
         } /* End of main loop */
 }
 
+#ifdef STE_WINDOWS
+/**************************************************************************
+ * Windows の場合の main()
+ * 
+ * 引数が -I もしくは -U だった場合には本プログラム（仮想 HUB デーモン）
+ * を Windows のサービスとして登録/登録解除する。
+ * それ以外の引数が渡された場合には ste_svc_main() を直接呼び出し、引数も
+ * そのまま ste_svc_main() に渡す。
+ * 
+ * 引数(argvとして）:
+ * 
+ *      -I : サービスとして登録。
+ *      -U : 登録解除
+ * 
+ **************************************************************************/
+int WINAPIV
+main(int argc, char *argv[])
+{
+    int c;
+
+    SERVICE_TABLE_ENTRY  DispatchTable[] = {
+        {  "Stehub", stehub_svc_main},
+        {  NULL,   NULL         }
+    };
+
+    isTerminal = _isatty(_fileno(stdout))? TRUE:FALSE;    
+
+    //
+    // 引数が無ない場合。
+    // コマンドプロンプトから呼ばれた時は stehub_svc_main() を呼び、
+    // そうでなければ StartServiceCtlDispatcher() を呼ぶ。
+    //
+    if(argc == 1 ){
+        if(isTerminal == TRUE){
+            stehub_svc_main(argc, argv);
+            return(0);
+        } else {
+            StartServiceCtrlDispatcher(DispatchTable);
+            return(0);
+        }
+    }
+    
+    while((c = getopt(argc, argv, "IU")) != EOF ){        
+        switch(c){
+            case 'I':
+                // stehub.exe をサービスとして登録
+                if(stehub_install_svc())
+                    printf("Service Installed Sucessfully\n");
+                else
+                    printf("Error Installing Service\n");
+                break;
+            case 'U':
+                // stehub.exe のサービスとして登録を解除
+                if(stehub_delete_svc())
+                    printf("Service UnInstalled Sucessfully\n");
+                else
+                    printf("Error UnInstalling Service\n");
+                break;
+            default :
+                //
+                // 引数が -U、-I でなければコマンドプロンプト内で
+                // stehub.exe を起動したいのだと判断し、引数を全て
+                // stehub_svc_main() に渡して呼び出す。
+                //
+                stehub_svc_main(argc, argv);
+                return(0);
+        }
+    }
+    return(0);    
+}
+
+/****************************************
+ * Windows サービス登録ルーチン
+ * 
+ ****************************************/
+BOOL stehub_install_svc()
+{
+    LPCTSTR lpszBinaryPathName;
+    TCHAR strDir[1024];
+    HANDLE schSCManager,schService;
+    
+    GetCurrentDirectory(1024, strDir);
+    strcat((char *)strDir, "\\stehub.exe"); 
+    schSCManager = OpenSCManager(NULL,NULL,SC_MANAGER_ALL_ACCESS);
+
+    if (schSCManager == NULL) 
+        return FALSE;
+
+    lpszBinaryPathName=strDir;
+
+    schService = CreateService(schSCManager,"Stehub", 
+                               "Stehub Virtual HUB daemon", // 表示用サービス名
+                               SERVICE_ALL_ACCESS,        // アクセス
+                               SERVICE_WIN32_OWN_PROCESS, // サービスタイプ
+                               SERVICE_DEMAND_START,      // スタートタイプ
+                               SERVICE_ERROR_NORMAL,      // エラーコントロールタイプ
+                               lpszBinaryPathName,        // バイナリへのパス
+                               NULL, // No load ordering group 
+                               NULL, // No tag identifier 
+                               NULL, // No dependencies
+                               NULL, // LocalSystem account
+                               NULL);// No password
+
+    if (schService == NULL)
+        return FALSE; 
+
+    CloseServiceHandle(schService);
+    return TRUE;
+}
+
+/****************************************
+ * Windows サービス登録解除ルーチン
+ * 
+ ****************************************/
+BOOL stehub_delete_svc()
+{
+    HANDLE schSCManager;
+    SC_HANDLE hService;
+    schSCManager = OpenSCManager(NULL,NULL,SC_MANAGER_ALL_ACCESS);
+
+    if (schSCManager == NULL)
+        return FALSE;
+    hService=OpenService(schSCManager, "Stehub", SERVICE_ALL_ACCESS);
+    if (hService == NULL)
+        return FALSE;
+    if(DeleteService(hService)==0)
+        return FALSE;
+    if(CloseServiceHandle(hService)==0)
+        return FALSE;
+
+    return TRUE;
+}
+
+/******************************************************************************
+ * stehub_svc_ctrl_handler()
+ * 
+ * サービスステータスハンドラー
+ * DEVICEEVENT を拾うためには Handler ではなく、HandlerEx じゃないといけないらしい。
+ * http://msdn.microsoft.com/library/default.asp?url=/library/en-us/dllproc/base/handlerex.asp
+ *
+ * まったく呼ばれていないような・・？
+ ******************************************************************************/
+DWORD WINAPI
+stehub_svc_ctrl_handler(
+    DWORD dwControl,
+    DWORD dwEventType,
+    LPVOID lpEventData,  
+    LPVOID lpContext
+    )
+{
+    PDEV_BROADCAST_HDR  p      = (PDEV_BROADCAST_HDR) lpEventData;
+    WPARAM              wParam = (WPARAM) dwEventType;
+    stehubstat_t         *stehubstat = NULL;
+
+    stehubstat = (stehubstat_t *)lpContext;
+
+    if(debuglevel > 1){
+        print_err(LOG_DEBUG, "Service Status Handler stehub_svc_ctrl_handler called\n");
+    }
+    
+    switch(dwControl){
+        case SERVICE_CONTROL_DEVICEEVENT:
+            break;
+        case SERVICE_CONTROL_PAUSE: 
+            stehubServiceStatus.dwCurrentState = SERVICE_PAUSED;
+            break;
+        case SERVICE_CONTROL_CONTINUE:
+            stehubServiceStatus.dwCurrentState = SERVICE_RUNNING;
+            break;
+        case SERVICE_CONTROL_STOP:
+            stehubServiceStatus.dwWin32ExitCode = 0;
+            stehubServiceStatus.dwCurrentState = SERVICE_STOPPED;
+            stehubServiceStatus.dwCheckPoint = 0;
+            stehubServiceStatus.dwWaitHint = 0;
+
+            SetServiceStatus (stehubServiceStatusHandle,&stehubServiceStatus);
+
+            break;
+        case SERVICE_CONTROL_INTERROGATE:
+            break; 
+    }
+    return NO_ERROR;
+}
+#endif // STE_WINDOWS
+
 /*****************************************************************************
  * add_conn_stat()
  *
@@ -527,8 +744,11 @@ print_err(int level, char *format, ...)
 void
 print_usage(char *argv)
 {
+    printf ("Usage: %s [-I|-U] [ -p port] [-d level]\n",argv);        
     printf ("Usage: %s [ -p port] [-d level]\n",argv);    
     printf ("\t-p port   : Port nubmer\n");
     printf ("\t-d level  : Debug level[0-2]\n");
-    exit(0);
+    printf ("\t-I        : Install Service\n");
+    printf ("\t-U        : Uninstall Service\n");
+    exit(1);
 }
