@@ -325,7 +325,9 @@ read_socket(stedstat_t *stedstat)
              * なので、もっと確実・安全に取り出せる仕組みを検討する必要がある。
              */
             stedstat->dataleft = stedstat->datalen = stedstat->dummyheadlen = 0;
-            print_err(LOG_NOTICE, "read_socket: header is broken\n");
+            if (debuglevel > 0) {            
+                print_err(LOG_NOTICE, "read_socket: header is broken\n");
+            }
             break;
         }
         if (debuglevel > 1) {
