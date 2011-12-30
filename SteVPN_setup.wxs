@@ -38,10 +38,15 @@
             </Component>
 
             <Directory Id='SteDriverDir' Name='driver'>
-                <Component Id='SteDriver' Guid='8F99267E-CD80-4255-A64D-AE61494F21D3'>
-                  <File Id='DirFilterSYS' Name='ste.sys' DiskId='1' Source='sys\i386\ste.sys' KeyPath='yes' />
-                  <File Id='DirFilterINF' Name='ste.inf' DiskId='1' Source='sys\netste.inf' />
-                  <difx:Driver Legacy='yes' />
+                <Directory Id='I386Dir' Name='i386'>
+                  <Component Id='SteInf' Guid='8F99267E-CD80-4255-A64D-AE61494F21D3'>
+
+                    <File Id='SteSYS' Name='ste.sys' DiskId='1' Source='sys\i386\ste.sys' KeyPath='yes' />
+                  </Component>
+                </Directory>
+                <Component Id='SteDriver' Guid='2A72D361-0578-4aed-A3A6-E4C64914B9D0'>
+                  <File Id='NetsteINF' Name='ste.inf' DiskId='1' Source='sys\netste.inf' />
+                  <difx:Driver ForceInstall='yes' PlugAndPlayPrompt='yes' Legacy='yes' /> 
                 </Component>
             </Directory>
 
@@ -54,8 +59,9 @@
       <ComponentRef Id='StedExecutable' />
       <ComponentRef Id='StehubExecutable' />
       <ComponentRef Id='SteDriver' />
+      <ComponentRef Id='SteInf' />
     </Feature>
-    <UIRef Id="WixUI_Minimal" />
+<!--    <UIRef Id="WixUI_Minimal" /> -->
 
   </Product>
 </Wix>
