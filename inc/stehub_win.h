@@ -39,8 +39,6 @@
 #include <dbt.h>        
 #include <direct.h>
 #include <Winsvc.h>
-#include <ntddndis.h>   /* for IOCTL_NDIS_QUERY_GLOBAL_STATS */
-#include <ndisguid.h>   /* for GUID_NDIS_LAN_CLASS */
 #include <io.h>
 #include "getopt_win.h"
 

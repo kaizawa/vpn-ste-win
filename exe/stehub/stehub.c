@@ -240,7 +240,6 @@ main(int argc,char *argv[])
         stehubServiceStatus.dwServiceSpecificExitCode = 0;
         stehubServiceStatus.dwCheckPoint = 0;
         stehubServiceStatus.dwWaitHint = 0;
-        InterfaceGuid = GUID_NDIS_LAN_CLASS;
     
         /* サービスコントロールハンドラーを登録 */
         stehubServiceStatusHandle = RegisterServiceCtrlHandlerEx(
