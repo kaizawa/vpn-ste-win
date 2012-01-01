@@ -41,7 +41,7 @@ Class     = Net                                    ;;; NIC であればこれ。
 ClassGUID = {4d36e972-e325-11ce-bfc1-08002be10318} ;;; Net Class の場合の ClassGUID。
 Signature = "$Windows NT$"                         ;;; NT ベースの OS の場合は必須
 Provider  = %Admin2%                               ;;; 配布元
-DriverVer = 12/28/2011,1.1.0.0                     ;;; バージョン
+DriverVer = 01/01/2012,1.1.1.0                     ;;; バージョン
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
