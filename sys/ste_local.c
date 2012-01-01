@@ -792,11 +792,12 @@ SteDispatchWrite(
 
     if(Status != NDIS_STATUS_SUCCESS){
         NtStatus = STATUS_UNSUCCESSFUL;
-        Adapter->Ierrors++;
+        if (Adapter != NULL)
+            Adapter->Ierrors++;
         // 書き込みサイズを 0 にセット
         Irp->IoStatus.Information = 0;
         // Packet を取得済みの場合は開放する。
-        if (RecvPacket != NULL){
+        if (RecvPacket != NULL && Adapter != NULL){
             SteFreeRecvPacket(Adapter, RecvPacket);
         }
     }
