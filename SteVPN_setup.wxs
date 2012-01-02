@@ -2,11 +2,11 @@
 <Wix xmlns='http://schemas.microsoft.com/wix/2006/wi'
    xmlns:difx='http://schemas.microsoft.com/wix/DifxAppExtension'>
 
-  <Product Name='SteVPN 1.1.0'
+  <Product Name='SteVPN 1.1.2'
            Id='6B3B862C-AA93-4bcc-A23E-6363D80E28CE'
            UpgradeCode='495F8311-6C65-4515-967C-E73545CE0818'
            Language='1041' Codepage='932'
-           Version='1.1.0' Manufacturer='Admin2'>
+           Version='1.1.2' Manufacturer='Admin2'>
 
     <Package Id='*' Keywords='Installer'
              Description="SteVPN 1.1.0 Installer"
